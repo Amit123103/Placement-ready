@@ -87,12 +87,8 @@ export default function QuestionsPage() {
     try {
       if (editingQuestion) {
         // Edit
-        const res = await fetch(`http://localhost:3001/api/questions/${editingQuestion.id}`, {
-          method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(formData)
-        });
-        if (!res.ok) throw new Error("Update failed");
-        const updatedDoc = await res.json();
-        setQuestions(questions.map((q: any) => q.id === editingQuestion.id ? updatedDoc : q));
+        await updateDoc(doc(db, "questions", editingQuestion.id), formData);
+        setQuestions(questions.map((q: any) => q.id === editingQuestion.id ? { ...formData, id: editingQuestion.id } : q));
       } else {
         // Add
         const docRef = await addDoc(collection(db, "questions"), formData);

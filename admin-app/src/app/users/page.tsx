@@ -85,12 +85,8 @@ export default function UsersPage() {
     e.preventDefault();
     try {
       if (editingUser) {
-        const res = await fetch(`http://localhost:3001/api/users/${editingUser.id}`, {
-          method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(formData)
-        });
-        if (!res.ok) throw new Error("Update failed");
-        const updatedDoc = await res.json();
-        setUsers(users.map((u: any) => u.id === editingUser.id ? updatedDoc : u));
+        await updateDoc(doc(db, "users", editingUser.id), formData);
+        setUsers(users.map((u: any) => u.id === editingUser.id ? { ...formData, id: editingUser.id } : u));
       } else {
         const docRef = await addDoc(collection(db, "users"), formData);
         setUsers([...users, { ...formData, id: docRef.id }]);

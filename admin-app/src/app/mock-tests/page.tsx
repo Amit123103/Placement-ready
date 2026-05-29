@@ -84,12 +84,8 @@ export default function MockTestsPage() {
     e.preventDefault();
     try {
       if (editingTest) {
-        const res = await fetch(`http://localhost:3001/api/mockTests/${editingTest.id}`, {
-          method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(formData)
-        });
-        if (!res.ok) throw new Error("Update failed");
-        const updatedDoc = await res.json();
-        setTests(tests.map((t: any) => t.id === editingTest.id ? updatedDoc : t));
+        await updateDoc(doc(db, "mockTests", editingTest.id), formData);
+        setTests(tests.map((t: any) => t.id === editingTest.id ? { ...formData, id: editingTest.id } : t));
       } else {
         const docRef = await addDoc(collection(db, "mockTests"), formData);
         setTests([...tests, { ...formData, id: docRef.id }]);
