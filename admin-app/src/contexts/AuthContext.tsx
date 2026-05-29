@@ -7,9 +7,8 @@ import {
   signInWithPopup, 
   GoogleAuthProvider, 
   signOut,
-  sendSignInLinkToEmail,
-  signInWithEmailLink,
-  isSignInWithEmailLink
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword
 } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
@@ -20,7 +19,7 @@ interface AuthContextType {
   signInWithGoogle: () => Promise<void>;
   logout: () => Promise<void>;
   sendLoginLink: (email: string) => Promise<void>;
-  verifyLoginLink: (email: string, windowHref: string) => Promise<void>;
+  verifyLoginLink: (email: string, otp: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -56,28 +55,53 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const sendLoginLink = async (email: string) => {
-    const actionCodeSettings = {
-      // URL you want to redirect back to. The domain (www.example.com) for this
-      // URL must be in the authorized domains list in the Firebase Console.
-      url: window.location.origin + '/login',
-      handleCodeInApp: true,
-    };
-    
     try {
-      await sendSignInLinkToEmail(auth, email, actionCodeSettings);
+      const response = await fetch('/api/auth/send-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to send verification code.');
+      }
       window.localStorage.setItem('emailForSignIn', email);
     } catch (error) {
-      console.error("Error sending email link", error);
+      console.error("Error sending OTP:", error);
       throw error;
     }
   };
 
-  const verifyLoginLink = async (email: string, windowHref: string) => {
+  const verifyLoginLink = async (email: string, otp: string) => {
     try {
-      if (isSignInWithEmailLink(auth, windowHref)) {
-        await signInWithEmailLink(auth, email, windowHref);
-        window.localStorage.removeItem('emailForSignIn');
+      const response = await fetch('/api/auth/verify-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, otp })
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to verify OTP');
       }
+
+      // OTP is valid! Now sign in to Firebase Auth.
+      const defaultPassword = "PlacementReadyAdmin2026!";
+      try {
+        await signInWithEmailAndPassword(auth, email, defaultPassword);
+      } catch (authError: any) {
+        // If user does not exist or credentials error, try to create them
+        if (authError.code === 'auth/user-not-found' || authError.code === 'auth/invalid-credential') {
+          try {
+            await createUserWithEmailAndPassword(auth, email, defaultPassword);
+          } catch (createError) {
+            console.error("Error creating admin user:", createError);
+            throw authError; // throw original sign-in error
+          }
+        } else {
+          throw authError;
+        }
+      }
+      window.localStorage.removeItem('emailForSignIn');
     } catch (error) {
       console.error("Error verifying email link", error);
       throw error;

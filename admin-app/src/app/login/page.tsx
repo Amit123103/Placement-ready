@@ -10,60 +10,51 @@ import { auth } from "@/lib/firebase";
 
 function LoginContent() {
   const [email, setEmail] = useState("rik0rik8957@gmail.com");
-  const [status, setStatus] = useState<"idle" | "loading" | "success" | "verifying" | "error">("idle");
+  const [otp, setOtp] = useState("");
+  const [status, setStatus] = useState<"idle" | "success" | "error">("idle");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   
   const { sendLoginLink, verifyLoginLink, user } = useAuth();
   const router = useRouter();
-  const searchParams = useSearchParams();
 
   useEffect(() => {
     // If already logged in, redirect to dashboard
     if (user) {
       router.push("/");
-      return;
     }
-
-    const checkEmailLink = async () => {
-      if (isSignInWithEmailLink(auth, window.location.href)) {
-        setStatus("verifying");
-        let savedEmail = window.localStorage.getItem("emailForSignIn");
-        
-        if (!savedEmail) {
-          // If no email saved, prompt the user for it
-          savedEmail = window.prompt("Please provide your email for confirmation");
-        }
-
-        if (savedEmail) {
-          try {
-            await verifyLoginLink(savedEmail, window.location.href);
-            // Verification successful, redirect to dashboard
-            router.push("/");
-          } catch (error: any) {
-            setStatus("error");
-            setErrorMessage(error?.message || "Invalid or expired link. Please try again.");
-          }
-        } else {
-          setStatus("error");
-          setErrorMessage("Email is required to complete sign-in.");
-        }
-      }
-    };
-
-    checkEmailLink();
-  }, [user, router, verifyLoginLink, searchParams]);
+  }, [user, router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email) return;
 
     try {
-      setStatus("loading");
+      setIsSubmitting(true);
+      setErrorMessage("");
       await sendLoginLink(email);
       setStatus("success");
     } catch (error: any) {
       setStatus("error");
-      setErrorMessage(error?.message || "Failed to send login link.");
+      setErrorMessage(error?.message || "Failed to send verification code.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleVerifyOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (otp.length !== 6) return;
+
+    try {
+      setIsSubmitting(true);
+      setErrorMessage("");
+      await verifyLoginLink(email, otp);
+      router.push("/");
+    } catch (error: any) {
+      setErrorMessage(error?.message || "Invalid or expired code. Please try again.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -84,48 +75,86 @@ function LoginContent() {
           Admin Portal
         </h2>
         <p className="text-muted-foreground mt-2 text-sm">
-          Secure passwordless authentication
+          Secure OTP authentication
         </p>
       </div>
 
       <AnimatePresence mode="wait">
-        {status === "verifying" && (
-          <motion.div 
-            key="verifying"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            className="flex flex-col items-center justify-center py-8 space-y-4"
-          >
-            <Loader2 className="w-8 h-8 animate-spin text-purple-500" />
-            <p className="text-sm font-medium animate-pulse text-muted-foreground">Verifying your magic link...</p>
-          </motion.div>
-        )}
-
         {status === "success" && (
           <motion.div 
             key="success"
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="bg-green-500/10 border border-green-500/20 text-green-600 dark:text-green-400 p-6 rounded-2xl text-center space-y-3"
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="space-y-5"
           >
-            <div className="mx-auto w-12 h-12 bg-green-500/20 rounded-full flex items-center justify-center mb-2">
-              <Mail className="w-6 h-6 text-green-500" />
+            <div className="bg-green-500/10 border border-green-500/20 text-green-600 dark:text-green-400 p-6 rounded-2xl text-center space-y-3">
+              <div className="mx-auto w-12 h-12 bg-green-500/20 rounded-full flex items-center justify-center mb-2">
+                <Mail className="w-6 h-6 text-green-500" />
+              </div>
+              <h3 className="font-semibold text-lg">Code Sent</h3>
+              <p className="text-sm opacity-90">
+                We've sent a 6-digit verification code to <br/><strong className="font-medium">{email}</strong>
+              </p>
             </div>
-            <h3 className="font-semibold text-lg">Check your inbox</h3>
-            <p className="text-sm opacity-90">
-              We've sent a magic link to <br/><strong className="font-medium">{email}</strong>
-            </p>
-            <button 
-              onClick={() => setStatus("idle")}
-              className="mt-4 text-xs font-medium text-green-600 dark:text-green-400 hover:underline"
-            >
-              Try another email
-            </button>
+
+            <form onSubmit={handleVerifyOtp} className="space-y-5">
+              <div className="space-y-1">
+                <label htmlFor="otp" className="text-sm font-medium ml-1">
+                  Verification Code
+                </label>
+                <input
+                  id="otp"
+                  type="text"
+                  maxLength={6}
+                  value={otp}
+                  onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
+                  required
+                  placeholder="------"
+                  className="block w-full text-center tracking-[0.5em] text-xl font-bold py-3 bg-background/50 border border-border rounded-xl focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500 transition-all outline-none"
+                  disabled={isSubmitting}
+                />
+              </div>
+
+              {errorMessage && (
+                <div className="flex items-start space-x-2 text-destructive bg-destructive/10 p-3 rounded-lg text-sm">
+                  <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
+                  <span>{errorMessage}</span>
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={otp.length !== 6 || isSubmitting}
+                className="group relative w-full flex justify-center py-3.5 px-4 border border-transparent rounded-xl text-sm font-semibold text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-purple-500/25 hover:shadow-purple-500/40"
+              >
+                {isSubmitting ? (
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                ) : (
+                  <span className="flex items-center space-x-2">
+                    <span>Verify & Login</span>
+                    <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                  </span>
+                )}
+              </button>
+            </form>
+
+            <div className="text-center">
+              <button 
+                onClick={() => {
+                  setStatus("idle");
+                  setErrorMessage("");
+                  setOtp("");
+                }}
+                className="text-xs font-medium text-muted-foreground hover:text-foreground transition-colors hover:underline"
+              >
+                Try another email
+              </button>
+            </div>
           </motion.div>
         )}
 
-        {(status === "idle" || status === "loading" || status === "error") && (
+        {(status === "idle" || status === "error") && (
           <motion.div
             key="form"
             initial={{ opacity: 0, x: 20 }}
@@ -149,12 +178,12 @@ function LoginContent() {
                     required
                     placeholder="admin@placementready.com"
                     className="block w-full pl-11 pr-4 py-3 bg-background/50 border border-border rounded-xl text-sm focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500 transition-all outline-none"
-                    disabled={status === "loading"}
+                    disabled={isSubmitting}
                   />
                 </div>
               </div>
 
-              {status === "error" && (
+              {status === "error" && errorMessage && (
                 <motion.div 
                   initial={{ opacity: 0, height: 0 }} 
                   animate={{ opacity: 1, height: "auto" }}
@@ -167,14 +196,14 @@ function LoginContent() {
 
               <button
                 type="submit"
-                disabled={status === "loading" || !email}
+                disabled={isSubmitting || !email}
                 className="group relative w-full flex justify-center py-3.5 px-4 border border-transparent rounded-xl text-sm font-semibold text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500 focus:ring-offset-background disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-purple-500/25 hover:shadow-purple-500/40"
               >
-                {status === "loading" ? (
+                {isSubmitting ? (
                   <Loader2 className="w-5 h-5 animate-spin" />
                 ) : (
                   <span className="flex items-center space-x-2">
-                    <span>Send Magic Link</span>
+                    <span>Send Verification Code</span>
                     <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                   </span>
                 )}
