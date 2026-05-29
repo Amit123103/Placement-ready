@@ -147,7 +147,7 @@ export default function UsersPage() {
             
             <div className="space-y-2">
               <Label htmlFor="role">Role</Label>
-              <Select value={formData.role} onValueChange={(val) => setFormData({ ...formData, role: val })}>
+              <Select value={formData.role} onValueChange={(val) => setFormData({ ...formData, role: val || "" })}>
                 <SelectTrigger><SelectValue placeholder="Select Role" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="Student">Student</SelectItem>
@@ -158,7 +158,7 @@ export default function UsersPage() {
 
             <div className="space-y-2">
               <Label htmlFor="status">Status</Label>
-              <Select value={formData.status} onValueChange={(val) => setFormData({ ...formData, status: val })}>
+              <Select value={formData.status} onValueChange={(val) => setFormData({ ...formData, status: val || "" })}>
                 <SelectTrigger><SelectValue placeholder="Select Status" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="Active">Active</SelectItem>

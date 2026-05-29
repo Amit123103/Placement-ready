@@ -156,7 +156,7 @@ export default function MockTestsPage() {
             
             <div className="space-y-2">
               <Label htmlFor="status">Status</Label>
-              <Select value={formData.status} onValueChange={(val) => setFormData({ ...formData, status: val })}>
+              <Select value={formData.status} onValueChange={(val) => setFormData({ ...formData, status: val || "" })}>
                 <SelectTrigger><SelectValue placeholder="Select Status" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="Draft">Draft</SelectItem>

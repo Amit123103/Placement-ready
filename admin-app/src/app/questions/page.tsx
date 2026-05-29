@@ -150,7 +150,7 @@ export default function QuestionsPage() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="category">Category</Label>
-                <Select value={formData.category} onValueChange={(val) => setFormData({ ...formData, category: val })}>
+                <Select value={formData.category} onValueChange={(val) => setFormData({ ...formData, category: val || "" })}>
                   <SelectTrigger><SelectValue placeholder="Select Category" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="Arrays">Arrays</SelectItem>
@@ -164,7 +164,7 @@ export default function QuestionsPage() {
               
               <div className="space-y-2">
                 <Label htmlFor="difficulty">Difficulty</Label>
-                <Select value={formData.difficulty} onValueChange={(val) => setFormData({ ...formData, difficulty: val })}>
+                <Select value={formData.difficulty} onValueChange={(val) => setFormData({ ...formData, difficulty: val || "" })}>
                   <SelectTrigger><SelectValue placeholder="Select Difficulty" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="Easy">Easy</SelectItem>
