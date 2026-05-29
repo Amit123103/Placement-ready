@@ -93,7 +93,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         if (authError.code === 'auth/user-not-found' || authError.code === 'auth/invalid-credential') {
           try {
             await createUserWithEmailAndPassword(auth, email, defaultPassword);
-          } catch (createError) {
+          } catch (createError: any) {
+            if (createError.code === 'auth/email-already-in-use') {
+              // The account exists in Firebase Auth with a different password.
+              // Send password reset email automatically.
+              const { sendPasswordResetEmail } = await import('firebase/auth');
+              await sendPasswordResetEmail(auth, email);
+              throw new Error("This email is already in use with a student account. A password reset link has been sent to your email. Please reset your password to log in as admin.");
+            }
             console.error("Error creating admin user:", createError);
             throw authError; // throw original sign-in error
           }
