@@ -122,6 +122,26 @@ Since these are two separate Next.js applications, you should deploy them as **t
 
 ---
 
+## ☁️ Deployment (AWS Amplify)
+
+Since these are two separate Next.js applications, you should deploy them as **two separate apps** on AWS Amplify, which natively supports Next.js SSR out of the box.
+
+1. Log in to your [AWS Management Console](https://console.aws.amazon.com/) and navigate to **AWS Amplify**.
+2. Click **Create new app** and authorize AWS to connect to your GitHub account.
+3. Select this repository from the list of your connected repositories.
+4. For the **User Portal**:
+   - In the build settings, check the box that says **"My app is a monorepo"**.
+   - Enter `user-app` as the **App root directory**.
+   - Under **Advanced settings** or **Environment variables**, paste all your Firebase `.env` keys.
+   - Click **Save and deploy**.
+5. For the **Admin Portal**:
+   - Go back to the Amplify dashboard and create another new app using the same repository.
+   - Check **"My app is a monorepo"** and enter `admin-app` as the **App root directory**.
+   - Add your Firebase `.env` variables.
+   - Click **Save and deploy**.
+
+---
+
 ## 🛠️ Tech Stack
 - **Framework**: Next.js 15 (App Router, React 19)
 - **Language**: TypeScript
