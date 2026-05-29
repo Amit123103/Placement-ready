@@ -9,7 +9,7 @@ import { isSignInWithEmailLink } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 
 function LoginContent() {
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState("rik0rik8957@gmail.com");
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "verifying" | "error">("idle");
   const [errorMessage, setErrorMessage] = useState("");
   
