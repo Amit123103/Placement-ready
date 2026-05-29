@@ -1,18 +1,5 @@
 import { NextResponse } from 'next/server';
-import { initializeApp, getApps, getApp } from "firebase/app";
-import { getFirestore, doc, getDoc, deleteDoc } from "firebase/firestore";
-
-const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID
-};
-
-const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-const db = getFirestore(app);
+import crypto from 'crypto';
 
 export async function POST(req: Request) {
   try {
@@ -22,29 +9,31 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Email and OTP are required' }, { status: 400 });
     }
 
-    const otpDocRef = doc(db, 'admin_otps', email);
-    const otpSnap = await getDoc(otpDocRef);
-
-    if (!otpSnap.exists()) {
-      return NextResponse.json({ error: 'No verification code found or code has expired. Please try again.' }, { status: 400 });
-    }
-
-    const data = otpSnap.data();
+    // Secret key for HMAC calculations
+    const secret = process.env.EMAIL_PASS || "placement-ready-admin-secret-key-2026";
+    const timeStepMinutes = 5;
+    const currentTimeBlock = Math.floor(Date.now() / (timeStepMinutes * 60 * 1000));
     
-    // Check if expired
-    const expiresAt = new Date(data.expiresAt);
-    if (new Date() > expiresAt) {
-      await deleteDoc(otpDocRef);
-      return NextResponse.json({ error: 'Verification code has expired. Please request a new one.' }, { status: 400 });
+    let isMatched = false;
+
+    // Verify OTP across current, previous, and prior time blocks to allow 10-15 minute validity and server delay
+    for (let i = 0; i <= 2; i++) {
+      const timeBlockToCheck = currentTimeBlock - i;
+      const hmac = crypto.createHmac('sha256', secret);
+      hmac.update(`${email}-${timeBlockToCheck}`);
+      const hash = hmac.digest('hex');
+      const expectedOtp = (parseInt(hash.substring(0, 8), 16) % 900000 + 100000).toString();
+      
+      if (expectedOtp === otp) {
+        isMatched = true;
+        break;
+      }
     }
 
-    // Check if matches
-    if (data.otp !== otp) {
-      return NextResponse.json({ error: 'Invalid verification code. Please check and try again.' }, { status: 400 });
+    if (!isMatched) {
+      return NextResponse.json({ error: 'Invalid or expired verification code. Please request a new one.' }, { status: 400 });
     }
 
-    // Success, delete the OTP doc
-    await deleteDoc(otpDocRef);
     return NextResponse.json({ success: true, message: 'OTP verified successfully.' });
 
   } catch (error: any) {

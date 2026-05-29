@@ -1,19 +1,6 @@
 import { NextResponse } from 'next/server';
 import nodemailer from 'nodemailer';
-import { initializeApp, getApps, getApp } from "firebase/app";
-import { getFirestore, doc, setDoc } from "firebase/firestore";
-
-const firebaseConfig = {
-  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
-  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID
-};
-
-const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-const db = getFirestore(app);
+import crypto from 'crypto';
 
 export async function POST(req: Request) {
   try {
@@ -23,18 +10,16 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Email is required' }, { status: 400 });
     }
 
-    // Generate a secure 6-digit OTP
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes from now
-
-    // Save to Firestore admin_otps collection
-    const otpDocRef = doc(db, 'admin_otps', email);
-    await setDoc(otpDocRef, {
-      email,
-      otp,
-      expiresAt: expiresAt.toISOString(),
-      createdAt: new Date().toISOString()
-    });
+    // Generate a stateless, secure 6-digit OTP using HMAC based on current time block
+    const secret = process.env.EMAIL_PASS || "placement-ready-admin-secret-key-2026";
+    const timeStepMinutes = 5;
+    const timeBlock = Math.floor(Date.now() / (timeStepMinutes * 60 * 1000));
+    
+    const hmac = crypto.createHmac('sha256', secret);
+    hmac.update(`${email}-${timeBlock}`);
+    const hash = hmac.digest('hex');
+    
+    const otp = (parseInt(hash.substring(0, 8), 16) % 900000 + 100000).toString();
 
     // Configure nodemailer transporter using environment variables
     const transporter = nodemailer.createTransport({
