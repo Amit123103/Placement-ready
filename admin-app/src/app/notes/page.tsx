@@ -1,0 +1,188 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import { db } from "@/lib/firebase";
+import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc } from "firebase/firestore";
+import { DashboardLayout } from "@/components/dashboard-layout";
+import { Button } from "@/components/ui/button";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Plus, Edit2, Trash2, AlertCircle } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+
+interface Note {
+  id: string;
+  title: string;
+  subject: string;
+  description: string;
+  downloadLink: string;
+}
+
+export default function NotesAdmin() {
+  const [notes, setNotes] = useState<Note[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingItem, setEditingItem] = useState<Note | null>(null);
+
+  const [formData, setFormData] = useState({ 
+    title: "", subject: "", description: "", downloadLink: "" 
+  });
+
+  useEffect(() => {
+    fetchNotes();
+  }, []);
+
+  const fetchNotes = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const querySnapshot = await getDocs(collection(db, "notes"));
+      const data: any[] = [];
+      querySnapshot.forEach((document) => {
+        data.push({ id: document.id, ...document.data() });
+      });
+      setNotes(data);
+    } catch (err: any) {
+      console.error("Error fetching notes:", err);
+      setError("Failed to connect to Firebase database.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleOpenAdd = () => {
+    setEditingItem(null);
+    setFormData({ title: "", subject: "", description: "", downloadLink: "" });
+    setIsDialogOpen(true);
+  };
+
+  const handleOpenEdit = (t: Note) => {
+    setEditingItem(t);
+    setFormData({ 
+      title: t.title, 
+      subject: t.subject, 
+      description: t.description, 
+      downloadLink: t.downloadLink 
+    });
+    setIsDialogOpen(true);
+  };
+
+  const handleDelete = async (id: string) => {
+    if (confirm("Are you sure you want to delete this note?")) {
+      try {
+        await deleteDoc(doc(db, "notes", id));
+        setNotes(notes.filter(t => t.id !== id));
+      } catch (err) {
+        console.error("Error deleting:", err);
+        alert("Failed to delete. Please check your Firebase connection.");
+      }
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      if (editingItem) {
+        await updateDoc(doc(db, "notes", editingItem.id), formData);
+        setNotes(notes.map(t => t.id === editingItem.id ? { ...formData, id: editingItem.id } as Note : t));
+      } else {
+        const docRef = await addDoc(collection(db, "notes"), formData);
+        setNotes([...notes, { ...formData, id: docRef.id } as Note]);
+      }
+      setIsDialogOpen(false);
+    } catch (err) {
+      console.error("Error saving:", err);
+      alert("Failed to save. Please check your Firebase connection.");
+    }
+  };
+
+  return (
+    <DashboardLayout>
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-3xl font-bold tracking-tight">Manage Notes</h2>
+        <Button onClick={handleOpenAdd} disabled={!!error}><Plus className="mr-2 h-4 w-4" /> Add Note</Button>
+      </div>
+
+      {error && (
+        <div className="mb-6 p-4 rounded-lg bg-destructive/15 text-destructive border border-destructive/20 flex items-center gap-3">
+          <AlertCircle className="w-5 h-5 flex-shrink-0" />
+          <p className="text-sm font-medium">{error}</p>
+        </div>
+      )}
+
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="sm:max-w-[425px] bg-background">
+          <DialogHeader>
+            <DialogTitle>{editingItem ? "Edit Note" : "Add New Note"}</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleSubmit} className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="title">Title</Label>
+              <Input id="title" required value={formData.title} onChange={e => setFormData({ ...formData, title: e.target.value })} placeholder="Operating Systems Notes" />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="subject">Subject</Label>
+              <Input id="subject" required value={formData.subject} onChange={e => setFormData({ ...formData, subject: e.target.value })} placeholder="CS Core" />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="description">Description</Label>
+              <Input id="description" required value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} placeholder="Short description" />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="downloadLink">Download URL (PDF / Drive)</Label>
+              <Input id="downloadLink" required value={formData.downloadLink} onChange={e => setFormData({ ...formData, downloadLink: e.target.value })} placeholder="https://..." />
+            </div>
+
+            <div className="flex justify-end gap-2 pt-4">
+              <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
+              <Button type="submit">{editingItem ? "Save Changes" : "Add Note"}</Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <div className="border rounded-md bg-background overflow-hidden">
+        <Table>
+          <TableHeader className="bg-muted/50">
+            <TableRow>
+              <TableHead>Title</TableHead>
+              <TableHead>Subject</TableHead>
+              <TableHead>Description</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {loading ? (
+               <TableRow>
+                 <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">Loading from Firebase...</TableCell>
+               </TableRow>
+            ) : notes.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
+                  No notes found. Click "Add Note" to create one.
+                </TableCell>
+              </TableRow>
+            ) : notes.map((t) => (
+              <TableRow key={t.id}>
+                <TableCell className="font-medium">{t.title}</TableCell>
+                <TableCell>{t.subject}</TableCell>
+                <TableCell className="max-w-[300px] truncate">{t.description}</TableCell>
+                <TableCell className="text-right space-x-2">
+                  <Button variant="ghost" size="icon" onClick={() => handleOpenEdit(t)}>
+                    <Edit2 className="h-4 w-4 text-blue-500" />
+                  </Button>
+                  <Button variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10" onClick={() => handleDelete(t.id)}>
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+    </DashboardLayout>
+  );
+}

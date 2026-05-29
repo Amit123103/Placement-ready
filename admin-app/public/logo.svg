@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500" width="500" height="500">
+  <defs>
+    <linearGradient id="shieldGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#144b82" />
+      <stop offset="100%" stop-color="#09284b" />
+    </linearGradient>
+    <linearGradient id="arrowGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#fa9128" />
+      <stop offset="100%" stop-color="#d66509" />
+    </linearGradient>
+  </defs>
+
+  <!-- Background Shield -->
+  <path d="M 250 80 L 420 130 L 420 320 C 420 430 250 480 250 480 C 250 480 80 430 80 320 L 80 130 Z" fill="url(#shieldGrad)" />
+  <path d="M 250 100 L 390 145 L 390 310 C 390 400 250 450 250 450 C 250 450 110 400 110 310 L 110 145 Z" fill="none" stroke="#ffffff" stroke-width="8" opacity="0.3"/>
+
+  <!-- Graduation Cap -->
+  <path d="M 250 30 L 100 100 L 250 170 L 400 100 Z" fill="#08203c" />
+  <path d="M 200 140 L 300 140 L 300 190 C 300 210 200 210 200 190 Z" fill="#08203c" />
+  <!-- Tassel -->
+  <path d="M 250 100 L 130 140" stroke="#08203c" stroke-width="8" />
+  <path d="M 130 140 L 130 200" stroke="#08203c" stroke-width="8" />
+  <circle cx="130" cy="210" r="12" fill="#08203c" />
+
+  <!-- Upward Arrow -->
+  <path d="M 250 140 L 350 280 L 290 280 L 290 360 L 210 360 L 210 280 L 150 280 Z" fill="url(#arrowGrad)" />
+  
+  <!-- Star inside Arrow -->
+  <polygon points="250,180 265,220 310,220 270,245 285,290 250,260 215,290 230,245 190,220 235,220" fill="#08203c" />
+
+  <!-- Code Symbols -->
+  <text x="250" y="420" font-family="Courier New, monospace" font-size="70" font-weight="900" fill="#ffffff" text-anchor="middle" letter-spacing="4">{ &lt; &gt; }</text>
+</svg>
