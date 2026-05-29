@@ -64,17 +64,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
               createdAt: serverTimestamp()
             });
 
-            // Trigger welcome email asynchronously (only if displayName is available, i.e., not a standard email signup in progress)
-            if (firebaseUser.displayName) {
-              fetch('/api/send-welcome', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                  email: firebaseUser.email, 
-                  name: firebaseUser.displayName 
-                })
-              }).catch(console.error);
-            }
+            // Trigger welcome email asynchronously for any new user signup (Google, Email, etc.)
+            const welcomeName = firebaseUser.displayName || firebaseUser.email?.split('@')[0] || "Student";
+            fetch('/api/send-welcome', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ 
+                email: firebaseUser.email, 
+                name: welcomeName 
+              })
+            }).catch(console.error);
           }
         } catch (error) {
           console.error("Error syncing user to Firestore:", error);
@@ -149,16 +148,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         status: "Active",
         createdAt: serverTimestamp()
       });
-
-      // Send greeting email perfectly for the first time email signup
-      fetch('/api/send-welcome', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          email: email, 
-          name: name 
-        })
-      }).catch(console.error);
 
     } catch (error: any) {
       console.error("Error signing up with email", error);
