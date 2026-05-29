@@ -34,6 +34,23 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
+        // Check 24 hours auto-logout
+        const lastActiveStr = localStorage.getItem('lastActive');
+        if (lastActiveStr) {
+          const lastActive = parseInt(lastActiveStr, 10);
+          const now = Date.now();
+          const twentyFourHours = 24 * 60 * 60 * 1000;
+          if (now - lastActive > twentyFourHours) {
+            localStorage.removeItem('lastActive');
+            await signOut(auth);
+            setUser(null);
+            setLoading(false);
+            router.push('/');
+            return;
+          }
+        }
+        localStorage.setItem('lastActive', Date.now().toString());
+
         try {
           const userDocRef = doc(db, 'users', firebaseUser.uid);
           const userSnap = await getDoc(userDocRef);
@@ -67,6 +84,34 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     return () => unsubscribe();
   }, []);
+
+  // Track active state to auto-logout after 24h of inactivity/closing the app
+  useEffect(() => {
+    if (!user) return;
+
+    const updateActiveTime = () => {
+      localStorage.setItem('lastActive', Date.now().toString());
+    };
+
+    updateActiveTime();
+
+    const interval = setInterval(updateActiveTime, 30000); // every 30 seconds
+
+    const handleInteraction = () => {
+      updateActiveTime();
+    };
+
+    window.addEventListener('beforeunload', updateActiveTime);
+    window.addEventListener('click', handleInteraction);
+    window.addEventListener('keydown', handleInteraction);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('beforeunload', updateActiveTime);
+      window.removeEventListener('click', handleInteraction);
+      window.removeEventListener('keydown', handleInteraction);
+    };
+  }, [user]);
 
   const signInWithGoogle = async () => {
     const provider = new GoogleAuthProvider();
@@ -109,6 +154,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const logout = async () => {
     try {
+      localStorage.removeItem('lastActive');
       await signOut(auth);
       router.push('/');
     } catch (error) {
