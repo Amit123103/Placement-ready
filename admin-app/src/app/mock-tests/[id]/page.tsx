@@ -21,13 +21,14 @@ export default function MockTestBuilderPage({ params }: { params: Promise<{ id: 
   const [loading, setLoading] = useState(true);
 
   // New Question State
-  const [type, setType] = useState<"mcq" | "text" | "code">("mcq");
+  const [type, setType] = useState<"mcq" | "msq" | "short_text" | "long_text" | "code">("mcq");
   const [questionText, setQuestionText] = useState("");
   const [marks, setMarks] = useState(1);
   
-  // MCQ specific
+  // MCQ/MSQ specific
   const [options, setOptions] = useState<string[]>(["", "", "", ""]);
   const [correctIndex, setCorrectIndex] = useState(0);
+  const [correctIndices, setCorrectIndices] = useState<number[]>([]);
   
   // Code specific
   const [testCases, setTestCases] = useState([{ input: "", output: "" }]);
@@ -64,6 +65,11 @@ export default function MockTestBuilderPage({ params }: { params: Promise<{ id: 
       if (options.some(opt => !opt.trim())) return alert("All options must be filled.");
       newQuestion.options = options;
       newQuestion.correctIndex = correctIndex;
+    } else if (type === "msq") {
+      if (options.some(opt => !opt.trim())) return alert("All options must be filled.");
+      if (correctIndices.length === 0) return alert("Select at least one correct option.");
+      newQuestion.options = options;
+      newQuestion.correctIndices = correctIndices;
     } else if (type === "code") {
       if (testCases.some(tc => !tc.input.trim() || !tc.output.trim())) return alert("All test cases must be filled.");
       newQuestion.testCases = testCases;
@@ -79,6 +85,7 @@ export default function MockTestBuilderPage({ params }: { params: Promise<{ id: 
       setMarks(1);
       setOptions(["", "", "", ""]);
       setCorrectIndex(0);
+      setCorrectIndices([]);
       setTestCases([{ input: "", output: "" }]);
     } catch (e) {
       console.error(e);
@@ -125,8 +132,10 @@ export default function MockTestBuilderPage({ params }: { params: Promise<{ id: 
                 <Select value={type} onValueChange={(val: any) => setType(val)}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="mcq"><span className="flex items-center gap-2"><List className="w-4 h-4"/> Multiple Choice</span></SelectItem>
-                    <SelectItem value="text"><span className="flex items-center gap-2"><AlignLeft className="w-4 h-4"/> Text Answer</span></SelectItem>
+                    <SelectItem value="mcq"><span className="flex items-center gap-2"><List className="w-4 h-4"/> Single Choice (MCQ)</span></SelectItem>
+                    <SelectItem value="msq"><span className="flex items-center gap-2"><List className="w-4 h-4"/> Multiple Selection (MSQ)</span></SelectItem>
+                    <SelectItem value="short_text"><span className="flex items-center gap-2"><AlignLeft className="w-4 h-4"/> Short Answer</span></SelectItem>
+                    <SelectItem value="long_text"><span className="flex items-center gap-2"><AlignLeft className="w-4 h-4"/> Long Answer</span></SelectItem>
                     <SelectItem value="code"><span className="flex items-center gap-2"><Code className="w-4 h-4"/> Coding</span></SelectItem>
                   </SelectContent>
                 </Select>
@@ -166,6 +175,35 @@ export default function MockTestBuilderPage({ params }: { params: Promise<{ id: 
                     </div>
                   ))}
                   <p className="text-xs text-muted-foreground">Select the radio button next to the correct option.</p>
+                </div>
+              )}
+
+              {type === "msq" && (
+                <div className="space-y-3 pt-4 border-t border-border/50">
+                  <Label>Options & Correct Answers (Select multiple)</Label>
+                  {options.map((opt, i) => (
+                    <div key={i} className="flex items-center gap-2">
+                      <input 
+                        type="checkbox" 
+                        checked={correctIndices.includes(i)} 
+                        onChange={(e) => {
+                          if (e.target.checked) setCorrectIndices([...correctIndices, i]);
+                          else setCorrectIndices(correctIndices.filter(idx => idx !== i));
+                        }} 
+                        className="w-4 h-4"
+                      />
+                      <Input 
+                        placeholder={`Option ${i+1}`} 
+                        value={opt} 
+                        onChange={e => {
+                          const newOpts = [...options];
+                          newOpts[i] = e.target.value;
+                          setOptions(newOpts);
+                        }} 
+                      />
+                    </div>
+                  ))}
+                  <p className="text-xs text-muted-foreground">Select the checkboxes next to all correct options.</p>
                 </div>
               )}
 
@@ -232,6 +270,19 @@ export default function MockTestBuilderPage({ params }: { params: Promise<{ id: 
                                 {String.fromCharCode(65 + oIdx)}. {opt} {q.correctIndex === oIdx && <CheckCircle2 className="w-4 h-4 inline ml-1" />}
                               </div>
                             ))}
+                          </div>
+                        )}
+
+                        {q.type === "msq" && (
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+                            {q.options.map((opt: string, oIdx: number) => {
+                              const isCorrect = q.correctIndices?.includes(oIdx);
+                              return (
+                                <div key={oIdx} className={`p-2 rounded border ${isCorrect ? 'bg-emerald-500/10 border-emerald-500 text-emerald-700 dark:text-emerald-400' : 'bg-muted/30 border-border'}`}>
+                                  [ {isCorrect ? 'x' : ' '} ] {opt} {isCorrect && <CheckCircle2 className="w-4 h-4 inline ml-1" />}
+                                </div>
+                              );
+                            })}
                           </div>
                         )}
 

@@ -13,6 +13,7 @@ import { db } from "@/lib/firebase";
 import { doc, getDoc, collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { CodeEditor } from "@/components/code-editor";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import Link from "next/link";
 
 export default function TakeMockTestPage({ params }: { params: Promise<{ id: string }> }) {
@@ -106,9 +107,15 @@ export default function TakeMockTestPage({ params }: { params: Promise<{ id: str
       
       if (q.type === "mcq") {
         if (selectedAnswers[q.id] === q.correctIndex) qScore = q.marks || 1;
+      } else if (q.type === "msq") {
+        const selected = selectedAnswers[q.id] || [];
+        const correct = q.correctIndices || [];
+        if (selected.length === correct.length && correct.every((c: number) => selected.includes(c))) {
+          qScore = q.marks || 1;
+        }
       } else if (q.type === "code") {
         if (codeScores[q.id]) qScore = q.marks || 1;
-      } else if (q.type === "text") {
+      } else if (q.type === "text" || q.type === "short_text" || q.type === "long_text") {
         // Text requires manual grading, default 0 for now
         qScore = 0;
       }
@@ -265,13 +272,55 @@ export default function TakeMockTestPage({ params }: { params: Promise<{ id: str
                         </div>
                       )}
 
-                      {currentQ.type === "text" && (
+                      {currentQ.type === "msq" && (
+                        <div className="space-y-3">
+                          <p className="text-sm text-muted-foreground mb-4">Select all that apply.</p>
+                          {currentQ.options.map((option: string, idx: number) => {
+                            const selectedArr = selectedAnswers[currentQ.id] || [];
+                            const isSelected = selectedArr.includes(idx);
+                            return (
+                              <button
+                                key={idx}
+                                onClick={() => {
+                                  const newArr = isSelected 
+                                    ? selectedArr.filter((i: number) => i !== idx)
+                                    : [...selectedArr, idx];
+                                  handleSelectOption(currentQ.id, newArr);
+                                }}
+                                className={`w-full text-left p-4 rounded-xl text-sm font-medium border transition-all flex items-center gap-3 ${
+                                  isSelected
+                                    ? "bg-primary/10 border-primary text-foreground ring-1 ring-primary"
+                                    : "bg-background/40 hover:bg-muted/30 border-border/60 text-muted-foreground hover:text-foreground"
+                                }`}
+                              >
+                                <div className={`w-6 h-6 rounded flex items-center justify-center border transition-all ${isSelected ? "bg-primary text-primary-foreground border-primary" : "border-muted-foreground/30"}`}>
+                                  {isSelected && <CheckCircle2 className="w-4 h-4" />}
+                                </div>
+                                <span>{option}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      )}
+
+                      {(currentQ.type === "text" || currentQ.type === "long_text") && (
                         <div className="h-full">
                           <Textarea 
                             placeholder="Write your detailed answer here..." 
                             className="min-h-[250px] resize-y bg-background"
                             value={selectedAnswers[currentQ.id] || ""}
                             onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => handleSelectOption(currentQ.id, e.target.value)}
+                          />
+                        </div>
+                      )}
+
+                      {currentQ.type === "short_text" && (
+                        <div className="h-full">
+                          <Input 
+                            placeholder="Write your short answer here..." 
+                            className="bg-background h-14 text-lg"
+                            value={selectedAnswers[currentQ.id] || ""}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleSelectOption(currentQ.id, e.target.value)}
                           />
                         </div>
                       )}

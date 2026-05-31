@@ -159,7 +159,7 @@ export default function MockTestReviewPage({ params }: { params: Promise<{ id: s
                   <div className="flex items-center gap-3">
                     <span className="font-bold">Q{idx + 1}.</span>
                     <Badge variant="outline">{q.type.toUpperCase()}</Badge>
-                    {q.type === "text" && <Badge className="bg-yellow-500/10 text-yellow-600">Needs Manual Review</Badge>}
+                    {["text", "short_text", "long_text"].includes(q.type) && <Badge className="bg-yellow-500/10 text-yellow-600">Needs Manual Review</Badge>}
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-medium">Marks Given:</span>
@@ -203,7 +203,33 @@ export default function MockTestReviewPage({ params }: { params: Promise<{ id: s
                     </div>
                   )}
 
-                  {q.type === "text" && (
+                  {q.type === "msq" && (
+                    <div className="space-y-2">
+                      {q.options.map((opt: string, oIdx: number) => {
+                        const studentArr = studentAns || [];
+                        const isStudentSel = studentArr.includes(oIdx);
+                        const isCorrect = q.correctIndices?.includes(oIdx);
+                        
+                        let classes = "p-3 rounded border text-sm flex gap-2 items-center ";
+                        if (isCorrect) classes += "bg-emerald-500/10 border-emerald-500 text-emerald-600 font-bold";
+                        else if (isStudentSel && !isCorrect) classes += "bg-destructive/10 border-destructive text-destructive font-bold";
+                        else classes += "bg-muted/30 border-border text-muted-foreground";
+
+                        return (
+                          <div key={oIdx} className={classes}>
+                            <span className="w-5 h-5 rounded border flex justify-center items-center text-[10px] bg-background">
+                              {isStudentSel && <CheckCircle2 className="w-3 h-3 text-foreground" />}
+                            </span>
+                            {opt}
+                            {isStudentSel && <span className="ml-auto text-xs">(Student selected)</span>}
+                            {isCorrect && <span className="ml-auto text-xs"><CheckCircle2 className="w-4 h-4"/></span>}
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+
+                  {["text", "short_text", "long_text"].includes(q.type) && (
                     <div className="p-4 bg-muted/40 rounded-xl border whitespace-pre-wrap">
                       <span className="text-sm font-bold text-muted-foreground block mb-2">Student's Answer:</span>
                       {studentAns || <span className="italic text-muted-foreground">No answer provided.</span>}
