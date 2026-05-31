@@ -12,7 +12,6 @@ import { Plus, Edit2, Trash2, AlertCircle } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 
 
@@ -23,6 +22,8 @@ interface Question {
   difficulty: string;
   category: string;
   description: string;
+  solution?: string;
+  testCases?: { input: string; output: string }[];
 }
 
 export default function QuestionsPage() {
@@ -34,7 +35,14 @@ export default function QuestionsPage() {
   const [editingQuestion, setEditingQuestion] = useState<Question | null>(null);
 
   // Form State
-  const [formData, setFormData] = useState({ title: "", difficulty: "Easy", category: "Arrays", description: "" });
+  const [formData, setFormData] = useState<{
+    title: string;
+    difficulty: string;
+    category: string;
+    description: string;
+    solution: string;
+    testCases: { input: string; output: string }[];
+  }>({ title: "", difficulty: "Easy", category: "Arrays", description: "", solution: "", testCases: [] });
 
   useEffect(() => {
     fetchQuestions();
@@ -60,13 +68,20 @@ export default function QuestionsPage() {
 
   const handleOpenAdd = () => {
     setEditingQuestion(null);
-    setFormData({ title: "", difficulty: "Easy", category: "Arrays", description: "" });
+    setFormData({ title: "", difficulty: "Easy", category: "Arrays", description: "", solution: "", testCases: [] });
     setIsDialogOpen(true);
   };
 
   const handleOpenEdit = (q: Question) => {
     setEditingQuestion(q);
-    setFormData({ title: q.title, difficulty: q.difficulty, category: q.category, description: q.description });
+    setFormData({ 
+      title: q.title, 
+      difficulty: q.difficulty, 
+      category: q.category, 
+      description: q.description, 
+      solution: q.solution || "",
+      testCases: q.testCases || [] 
+    });
     setIsDialogOpen(true);
   };
 
@@ -95,12 +110,20 @@ export default function QuestionsPage() {
         setQuestions([...questions, { ...formData, id: docRef.id }]);
         
         // Trigger broadcast email
+        const motivationText = "Sharpening your skills daily is the key to landing your dream job. Don't let this opportunity slip by! Practice makes perfect.";
+        const shortDescription = formData.description.length > 150 ? formData.description.substring(0, 150) + "..." : formData.description;
+        
         fetch('/api/broadcast', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             subject: 'New DSA Question Added!',
-            message: `A new ${formData.difficulty} question "<strong>${formData.title}</strong>" has been added to the ${formData.category} category. Log in to practice it now!`
+            message: `A new ${formData.difficulty} question "<strong>${formData.title}</strong>" has been added to the ${formData.category} category.<br/><br/>
+            <strong>Brief Introduction:</strong><br/>
+            ${shortDescription}<br/><br/>
+            <strong>Motivation:</strong><br/>
+            ${motivationText}<br/><br/>
+            Log in to practice it now!`
           })
         }).catch(console.error);
       }
@@ -127,7 +150,7 @@ export default function QuestionsPage() {
 
       {/* Add / Edit Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-[600px] bg-background">
+        <DialogContent className="sm:max-w-[600px] bg-background max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editingQuestion ? "Edit Question" : "Add New Question"}</DialogTitle>
           </DialogHeader>
@@ -146,28 +169,38 @@ export default function QuestionsPage() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="category">Category</Label>
-                <Select value={formData.category} onValueChange={(val) => setFormData({ ...formData, category: val || "" })}>
-                  <SelectTrigger><SelectValue placeholder="Select Category" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Arrays">Arrays</SelectItem>
-                    <SelectItem value="Strings">Strings</SelectItem>
-                    <SelectItem value="Linked List">Linked List</SelectItem>
-                    <SelectItem value="Trees">Trees</SelectItem>
-                    <SelectItem value="Dynamic Programming">Dynamic Programming</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Input
+                  id="category"
+                  list="categories"
+                  required
+                  value={formData.category}
+                  onChange={e => setFormData({ ...formData, category: e.target.value })}
+                  placeholder="e.g. Arrays"
+                />
+                <datalist id="categories">
+                  <option value="Arrays" />
+                  <option value="Strings" />
+                  <option value="Linked List" />
+                  <option value="Trees" />
+                  <option value="Dynamic Programming" />
+                </datalist>
               </div>
               
               <div className="space-y-2">
                 <Label htmlFor="difficulty">Difficulty</Label>
-                <Select value={formData.difficulty} onValueChange={(val) => setFormData({ ...formData, difficulty: val || "" })}>
-                  <SelectTrigger><SelectValue placeholder="Select Difficulty" /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Easy">Easy</SelectItem>
-                    <SelectItem value="Medium">Medium</SelectItem>
-                    <SelectItem value="Hard">Hard</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Input
+                  id="difficulty"
+                  list="difficulties"
+                  required
+                  value={formData.difficulty}
+                  onChange={e => setFormData({ ...formData, difficulty: e.target.value })}
+                  placeholder="e.g. Easy"
+                />
+                <datalist id="difficulties">
+                  <option value="Easy" />
+                  <option value="Medium" />
+                  <option value="Hard" />
+                </datalist>
               </div>
             </div>
 
@@ -181,6 +214,58 @@ export default function QuestionsPage() {
                 onChange={e => setFormData({ ...formData, description: e.target.value })} 
                 placeholder="Enter the full problem statement here..."
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="solution">Solution (Optional)</Label>
+              <Textarea 
+                id="solution" 
+                rows={4} 
+                value={formData.solution} 
+                onChange={e => setFormData({ ...formData, solution: e.target.value })} 
+                placeholder="Enter the solution, approach, or explanation here..."
+              />
+            </div>
+
+            <div className="space-y-4 pt-2">
+              <Label className="text-base font-semibold">Test Cases</Label>
+              <div className="space-y-3">
+                {formData.testCases.map((tc, idx) => (
+                  <div key={idx} className="flex gap-2 items-start border p-3 rounded-md bg-muted/20 relative">
+                    <div className="flex-1 space-y-2">
+                      <Input 
+                        placeholder="Input (e.g. 1 2 3)" 
+                        value={tc.input} 
+                        onChange={e => {
+                          const newTc = [...formData.testCases];
+                          newTc[idx].input = e.target.value;
+                          setFormData({...formData, testCases: newTc});
+                        }} 
+                      />
+                      <Textarea 
+                        placeholder="Expected Output" 
+                        rows={2}
+                        value={tc.output} 
+                        onChange={e => {
+                          const newTc = [...formData.testCases];
+                          newTc[idx].output = e.target.value;
+                          setFormData({...formData, testCases: newTc});
+                        }} 
+                      />
+                    </div>
+                    <Button type="button" variant="ghost" size="icon" className="text-destructive mt-1" onClick={() => {
+                      const newTc = [...formData.testCases];
+                      newTc.splice(idx, 1);
+                      setFormData({...formData, testCases: newTc});
+                    }}>
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+              <Button type="button" variant="outline" size="sm" onClick={() => setFormData({...formData, testCases: [...formData.testCases, {input: "", output: ""}]})}>
+                <Plus className="w-4 h-4 mr-2" /> Add Test Case
+              </Button>
             </div>
 
             <div className="flex justify-end gap-2 pt-4">

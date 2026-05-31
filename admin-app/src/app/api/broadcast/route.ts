@@ -5,7 +5,7 @@ import { collection, getDocs } from 'firebase/firestore';
 
 export async function POST(req: Request) {
   try {
-    const { subject, message } = await req.json();
+    const { subject, message, imageUrl } = await req.json();
 
     if (!subject || !message) {
       return NextResponse.json({ error: 'Subject and message are required' }, { status: 400 });
@@ -37,9 +37,12 @@ export async function POST(req: Request) {
       console.log(`To: ${emails.length} users (${emails.join(', ')})`);
       console.log('Subject:', subject);
       console.log('Message:', message);
+      if (imageUrl) console.log('Image URL:', imageUrl);
       console.log('(Set EMAIL_USER and EMAIL_PASS in your .env to send real emails)');
       return NextResponse.json({ success: true, message: `Mock broadcast sent to ${emails.length} users.` });
     }
+
+    const imageHtml = imageUrl ? `<div style="margin: 20px 0; text-align: center;"><img src="${imageUrl}" alt="Attachment" style="max-width: 100%; border-radius: 8px;" /></div>` : '';
 
     // Send emails (using BCC so users don't see each other's emails)
     const mailOptions = {
@@ -50,10 +53,11 @@ export async function POST(req: Request) {
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 10px;">
           <h2 style="color: #2563eb;">PlacementReady Update</h2>
+          ${imageHtml}
           <div style="margin: 20px 0; line-height: 1.6;">
             ${message}
           </div>
-          <p style="margin-top: 30px; font-size: 12px; color: #64748b;">You are receiving this email because you are registered on PlacementReady.</p>
+          <p style="margin-top: 30px; font-size: 12px; color: #64748b;">You got this email because you signed up on Placement Ready.</p>
         </div>
       `,
     };

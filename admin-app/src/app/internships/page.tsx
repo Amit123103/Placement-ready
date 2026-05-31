@@ -90,6 +90,24 @@ export default function InternshipsAdmin() {
       } else {
         const docRef = await addDoc(collection(db, "internships"), formData);
         setInternships([...internships, { ...formData, id: docRef.id }]);
+        
+        // Trigger broadcast email
+        const motivationText = "Starting your career early is the best investment you can make. Every experience counts towards your dream job!";
+        fetch('/api/broadcast', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            subject: 'New Internship Opportunity Added!',
+            message: `A new <strong>${formData.role}</strong> internship at <strong>${formData.company}</strong> has been added.<br/><br/>
+            <strong>Brief Introduction:</strong><br/>
+            Role: ${formData.role}<br/>
+            Location: ${formData.location}<br/>
+            Stipend: ${formData.stipend}<br/><br/>
+            <strong>Motivation:</strong><br/>
+            ${motivationText}<br/><br/>
+            Log in and check the Internships section to apply now!`
+          })
+        }).catch(console.error);
       }
       setIsDialogOpen(false);
     } catch (err) {

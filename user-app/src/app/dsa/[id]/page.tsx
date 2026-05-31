@@ -1,6 +1,8 @@
 "use client";
 
-import { use } from "react";
+import { use, useEffect, useState } from "react";
+import { db } from "@/lib/firebase";
+import { doc, getDoc, collection, addDoc } from "firebase/firestore";
 import { Navbar } from "@/components/navbar";
 import { Footer } from "@/components/footer";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -8,167 +10,178 @@ import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
-import { ChevronLeft, CheckCircle2, Play, Lightbulb, Clock, Database } from "lucide-react";
+import { ChevronLeft, CheckCircle2, Lightbulb, Clock, Database, Terminal, XCircle } from "lucide-react";
 import Link from "next/link";
-import { motion } from "framer-motion";
-
-// Mock data for the specific question
-const mockQuestionData = {
-  id: "1",
-  title: "Two Sum",
-  difficulty: "Easy",
-  category: "Arrays",
-  company: "Google, Amazon, Microsoft",
-  description: `
-Given an array of integers \`nums\` and an integer \`target\`, return indices of the two numbers such that they add up to \`target\`.
-
-You may assume that each input would have **exactly one solution**, and you may not use the same element twice.
-
-You can return the answer in any order.
-  `,
-  examples: [
-    {
-      input: "nums = [2,7,11,15], target = 9",
-      output: "[0,1]",
-      explanation: "Because nums[0] + nums[1] == 9, we return [0, 1]."
-    },
-    {
-      input: "nums = [3,2,4], target = 6",
-      output: "[1,2]",
-      explanation: "Because nums[1] + nums[2] == 6, we return [1, 2]."
-    }
-  ],
-  constraints: [
-    "2 <= nums.length <= 10^4",
-    "-10^9 <= nums[i] <= 10^9",
-    "-10^9 <= target <= 10^9",
-    "Only one valid answer exists."
-  ],
-  solutionCode: `
-function twoSum(nums, target) {
-  const map = new Map();
-  for (let i = 0; i < nums.length; i++) {
-    const complement = target - nums[i];
-    if (map.has(complement)) {
-      return [map.get(complement), i];
-    }
-    map.set(nums[i], i);
-  }
-  return [];
-}
-  `
-};
+import { CodeEditor } from "@/components/code-editor";
 
 export default function QuestionDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  // In Next.js 15 app router, params should be unwrapped with React.use() if dynamic
   const resolvedParams = use(params);
-  const q = mockQuestionData;
+  const [q, setQ] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  
+  const [output, setOutput] = useState("");
+  const [error, setError] = useState("");
+  const [submitStatus, setSubmitStatus] = useState<"idle" | "success" | "error">("idle");
+
+  useEffect(() => {
+    async function fetchQ() {
+      try {
+        const docRef = doc(db, "questions", resolvedParams.id);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          setQ({ id: docSnap.id, ...docSnap.data() });
+        } else {
+          setQ(null);
+        }
+      } catch (e) {
+        console.error("Error fetching question:", e);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchQ();
+  }, [resolvedParams.id]);
+
+  const handleRun = (out: string, err: string) => {
+    setOutput(out);
+    setError(err);
+    setSubmitStatus("idle");
+  };
+
+  const handleSubmit = async (code: string, language: string, passed: boolean) => {
+    try {
+      setSubmitStatus("idle");
+      await addDoc(collection(db, "submissions"), {
+        questionId: resolvedParams.id,
+        questionTitle: q.title,
+        userId: "Anonymous Student", // Default since no robust auth provided in context
+        code,
+        language,
+        status: passed ? "Passed" : "Failed",
+        timestamp: new Date().toISOString()
+      });
+      setSubmitStatus(passed ? "success" : "error");
+    } catch (e) {
+      console.error("Error submitting code:", e);
+      setSubmitStatus("error");
+    }
+  };
+
+  if (loading) {
+    return (
+      <>
+        <Navbar />
+        <main className="flex-1 bg-muted/20 min-h-screen flex items-center justify-center">
+          <p className="text-muted-foreground animate-pulse">Loading question...</p>
+        </main>
+      </>
+    );
+  }
+
+  if (!q) {
+    return (
+      <>
+        <Navbar />
+        <main className="flex-1 bg-muted/20 min-h-screen flex flex-col items-center justify-center">
+          <p className="text-muted-foreground mb-4">Question not found.</p>
+          <Link href="/dsa" className={buttonVariants({ variant: "outline" })}>Back to Problems</Link>
+        </main>
+      </>
+    );
+  }
 
   return (
     <>
       <Navbar />
-      <main className="flex-1 bg-muted/20 min-h-screen">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl py-6">
-          <Link href="/dsa" className={cn(buttonVariants({ variant: "ghost" }), "mb-4")}>
+      <main className="flex-1 bg-muted/20 min-h-screen flex flex-col">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-[1400px] py-4 flex-1 flex flex-col">
+          <Link href="/dsa" className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "mb-4 self-start")}>
             <ChevronLeft className="mr-2 h-4 w-4" /> Back to Problems
           </Link>
 
-          <div className="flex flex-col lg:flex-row gap-6">
+          <div className="flex flex-col lg:flex-row gap-6 flex-1 min-h-0">
             {/* Left Panel: Question Details */}
-            <div className="w-full lg:w-1/2 flex flex-col space-y-4">
-              <Card className="glass-card flex-1">
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <h1 className="text-2xl font-bold">{q.title}</h1>
-                    <CheckCircle2 className="text-green-500 w-6 h-6" />
-                  </div>
-                  
-                  <div className="flex items-center gap-2 mb-6">
-                    <Badge variant="secondary" className="bg-opacity-20">{q.difficulty}</Badge>
-                    <Badge variant="outline">{q.category}</Badge>
-                    <Badge variant="outline" className="hidden sm:inline-flex">{q.company}</Badge>
-                  </div>
-
-                  <Tabs defaultValue="description" className="w-full">
-                    <TabsList className="grid w-full grid-cols-2 mb-4">
-                      <TabsTrigger value="description">Description</TabsTrigger>
-                      <TabsTrigger value="solution">Solution</TabsTrigger>
-                    </TabsList>
+            <div className="w-full lg:w-[45%] flex flex-col min-h-[500px]">
+              <Card className="glass-card flex-1 flex flex-col overflow-hidden">
+                <CardContent className="p-0 flex-1 overflow-y-auto">
+                  <div className="p-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <h1 className="text-2xl font-bold">{q.title}</h1>
+                      <CheckCircle2 className="text-green-500 w-6 h-6" />
+                    </div>
                     
-                    <TabsContent value="description" className="space-y-6">
-                      <div className="prose dark:prose-invert max-w-none text-sm text-muted-foreground whitespace-pre-wrap">
-                        {q.description.trim()}
-                      </div>
+                    <div className="flex items-center gap-2 mb-6">
+                      <Badge variant={q.difficulty === "Easy" ? "secondary" : q.difficulty === "Medium" ? "default" : "destructive"} className="bg-opacity-20">{q.difficulty}</Badge>
+                      <Badge variant="outline">{q.category}</Badge>
+                    </div>
 
-                      <div className="space-y-4">
-                        <h3 className="text-lg font-semibold flex items-center gap-2">
-                          <Lightbulb className="w-4 h-4 text-primary" /> Examples
-                        </h3>
-                        {q.examples.map((ex, i) => (
-                          <div key={i} className="bg-muted p-4 rounded-lg font-mono text-xs space-y-2">
-                            <div><strong className="text-foreground">Input:</strong> {ex.input}</div>
-                            <div><strong className="text-foreground">Output:</strong> {ex.output}</div>
-                            {ex.explanation && <div><strong className="text-foreground">Explanation:</strong> {ex.explanation}</div>}
+                    <Tabs defaultValue="description" className="w-full">
+                      <TabsList className="grid w-full grid-cols-2 mb-4 sticky top-0 bg-background z-10">
+                        <TabsTrigger value="description">Description</TabsTrigger>
+                        <TabsTrigger value="solution">Solution</TabsTrigger>
+                      </TabsList>
+                      
+                      <TabsContent value="description" className="space-y-6">
+                        <div className="prose dark:prose-invert max-w-none text-sm text-muted-foreground whitespace-pre-wrap font-sans">
+                          {q.description?.trim() || "No description provided."}
+                        </div>
+
+                        {q.testCases && q.testCases.length > 0 && (
+                          <div className="space-y-4">
+                            <h3 className="text-lg font-semibold flex items-center gap-2">
+                              <Lightbulb className="w-4 h-4 text-primary" /> Test Cases
+                            </h3>
+                            {q.testCases.map((tc: any, i: number) => (
+                              <div key={i} className="bg-muted/50 border p-4 rounded-lg font-mono text-xs space-y-2">
+                                <div><strong className="text-foreground">Input:</strong><br />{tc.input}</div>
+                                <div><strong className="text-foreground">Expected Output:</strong><br />{tc.output}</div>
+                              </div>
+                            ))}
                           </div>
-                        ))}
-                      </div>
+                        )}
+                      </TabsContent>
 
-                      <div className="space-y-4">
-                        <h3 className="text-lg font-semibold flex items-center gap-2">
-                          <Database className="w-4 h-4 text-primary" /> Constraints
-                        </h3>
-                        <ul className="list-disc list-inside text-sm text-muted-foreground space-y-1">
-                          {q.constraints.map((c, i) => (
-                            <li key={i}>{c}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    </TabsContent>
-
-                    <TabsContent value="solution">
-                      <div className="bg-muted p-4 rounded-lg overflow-x-auto">
-                        <pre className="text-xs font-mono">
-                          <code>{q.solutionCode.trim()}</code>
-                        </pre>
-                      </div>
-                      <div className="mt-4 flex gap-4 text-sm text-muted-foreground">
-                        <div className="flex items-center gap-1"><Clock className="w-4 h-4" /> Time: O(n)</div>
-                        <div className="flex items-center gap-1"><Database className="w-4 h-4" /> Space: O(n)</div>
-                      </div>
-                    </TabsContent>
-                  </Tabs>
+                      <TabsContent value="solution">
+                        {q.solution ? (
+                          <div className="prose dark:prose-invert max-w-none text-sm text-muted-foreground whitespace-pre-wrap font-sans">
+                            {q.solution.trim()}
+                          </div>
+                        ) : (
+                          <p className="text-sm text-muted-foreground italic">No official solution provided for this question.</p>
+                        )}
+                      </TabsContent>
+                    </Tabs>
+                  </div>
                 </CardContent>
               </Card>
             </div>
 
-            {/* Right Panel: Code Editor Mockup */}
-            <div className="w-full lg:w-1/2 flex flex-col h-[600px] lg:h-auto">
-              <Card className="glass-card flex-1 flex flex-col overflow-hidden">
-                <div className="bg-muted/50 border-b p-3 flex justify-between items-center">
-                  <div className="flex space-x-2">
-                    <Badge variant="outline" className="font-mono bg-background">JavaScript</Badge>
-                  </div>
-                  <div className="flex space-x-2">
-                    <Button variant="outline" size="sm">Run</Button>
-                    <Button size="sm" className="bg-green-600 hover:bg-green-700 text-white">
-                      Submit
-                    </Button>
-                  </div>
+            {/* Right Panel: Code Editor & Console */}
+            <div className="w-full lg:w-[55%] flex flex-col gap-4 h-[800px] lg:h-auto min-h-[500px]">
+              {/* Editor */}
+              <div className="flex-1 min-h-[400px]">
+                <CodeEditor 
+                  testCases={q.testCases || []} 
+                  onRun={handleRun} 
+                  onSubmit={handleSubmit} 
+                />
+              </div>
+              
+              {/* Output Console */}
+              <Card className="h-64 flex flex-col overflow-hidden bg-[#1e1e1e] border-gray-800 rounded-md shrink-0">
+                <div className="bg-muted/10 border-b border-gray-800 p-2 flex items-center gap-2 text-xs font-mono text-gray-400">
+                  <Terminal className="w-4 h-4" /> Console Output
+                  {submitStatus === "success" && <Badge className="ml-auto bg-green-600 text-white hover:bg-green-600">All Tests Passed & Submitted!</Badge>}
+                  {submitStatus === "error" && <Badge variant="destructive" className="ml-auto flex items-center gap-1"><XCircle className="w-3 h-3"/> Failed / Submission Error</Badge>}
                 </div>
-                <div className="flex-1 p-4 bg-[#1e1e1e] text-[#d4d4d4] font-mono text-sm overflow-y-auto">
-                  <pre>
-                    <code>
-{`/**
- * @param {number[]} nums
- * @param {number} target
- * @return {number[]}
- */
-var twoSum = function(nums, target) {
-    // Write your code here
-    
-};`}
-                    </code>
-                  </pre>
+                <div className="flex-1 p-4 overflow-y-auto font-mono text-sm">
+                  {error ? (
+                    <div className="text-red-400 whitespace-pre-wrap">{error}</div>
+                  ) : output ? (
+                    <div className="text-green-400 whitespace-pre-wrap">{output}</div>
+                  ) : (
+                    <div className="text-gray-600 italic">Run your code to see output here...</div>
+                  )}
                 </div>
               </Card>
             </div>

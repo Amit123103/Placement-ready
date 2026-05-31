@@ -1,13 +1,14 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { db } from "@/lib/firebase";
+import { db, storage } from "@/lib/firebase";
 import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc } from "firebase/firestore";
+import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Edit2, Trash2, AlertCircle } from "lucide-react";
+import { Plus, Edit2, Trash2, AlertCircle, ExternalLink, Upload } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -18,7 +19,7 @@ interface Project {
   description: string;
   techStack: string[];
   githubLink: string;
-  liveLink: string;
+  sourceCodeLink?: string;
   difficulty: string;
 }
 
@@ -29,9 +30,12 @@ export default function ProjectsAdmin() {
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<Project | null>(null);
+  const [file, setFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
 
   const [formData, setFormData] = useState({ 
-    title: "", description: "", techStack: "", githubLink: "", liveLink: "", difficulty: "Beginner" 
+    title: "", description: "", techStack: "", githubLink: "", sourceCodeLink: "", difficulty: "Beginner" 
   });
 
   useEffect(() => {
@@ -58,7 +62,9 @@ export default function ProjectsAdmin() {
 
   const handleOpenAdd = () => {
     setEditingItem(null);
-    setFormData({ title: "", description: "", techStack: "", githubLink: "", liveLink: "", difficulty: "Beginner" });
+    setFormData({ title: "", description: "", techStack: "", githubLink: "", sourceCodeLink: "", difficulty: "Beginner" });
+    setFile(null);
+    setUploadProgress(0);
     setIsDialogOpen(true);
   };
 
@@ -69,9 +75,11 @@ export default function ProjectsAdmin() {
       description: t.description, 
       techStack: t.techStack ? t.techStack.join(", ") : "", 
       githubLink: t.githubLink, 
-      liveLink: t.liveLink || "", 
+      sourceCodeLink: t.sourceCodeLink || "", 
       difficulty: t.difficulty 
     });
+    setFile(null);
+    setUploadProgress(0);
     setIsDialogOpen(true);
   };
 
@@ -90,22 +98,51 @@ export default function ProjectsAdmin() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      let finalSourceCodeLink = formData.sourceCodeLink;
+
+      if (file) {
+        setUploading(true);
+        const storageRef = ref(storage, `projects/${Date.now()}_${file.name}`);
+        const uploadTask = uploadBytesResumable(storageRef, file);
+
+        await new Promise((resolve, reject) => {
+          uploadTask.on(
+            "state_changed",
+            (snapshot) => {
+              const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+              setUploadProgress(progress);
+            },
+            (error) => {
+              console.error("Upload error:", error);
+              reject(error);
+            },
+            async () => {
+              finalSourceCodeLink = await getDownloadURL(uploadTask.snapshot.ref);
+              resolve(true);
+            }
+          );
+        });
+        setUploading(false);
+      }
+
       const submitData = {
         ...formData,
-        techStack: formData.techStack.split(",").map(s => s.trim()).filter(Boolean)
+        techStack: formData.techStack.split(",").map(s => s.trim()).filter(Boolean),
+        sourceCodeLink: finalSourceCodeLink
       };
 
       if (editingItem) {
         await updateDoc(doc(db, "projects", editingItem.id), submitData);
-        setProjects(projects.map(t => t.id === editingItem.id ? { ...submitData, id: editingItem.id } : t));
+        setProjects(projects.map(t => t.id === editingItem.id ? { ...submitData, id: editingItem.id } as Project : t));
       } else {
         const docRef = await addDoc(collection(db, "projects"), submitData);
-        setProjects([...projects, { ...submitData, id: docRef.id }]);
+        setProjects([...projects, { ...submitData, id: docRef.id } as Project]);
       }
       setIsDialogOpen(false);
     } catch (err) {
       console.error("Error saving:", err);
-      alert("Failed to save. Please check your Firebase connection.");
+      alert("Failed to save. Please check your Firebase connection and storage rules.");
+      setUploading(false);
     }
   };
 
@@ -124,7 +161,7 @@ export default function ProjectsAdmin() {
       )}
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-[425px] bg-background">
+        <DialogContent className="sm:max-w-[425px] bg-background max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editingItem ? "Edit Project" : "Add New Project"}</DialogTitle>
           </DialogHeader>
@@ -149,14 +186,35 @@ export default function ProjectsAdmin() {
               <Label htmlFor="githubLink">GitHub URL</Label>
               <Input id="githubLink" required value={formData.githubLink} onChange={e => setFormData({ ...formData, githubLink: e.target.value })} placeholder="https://github.com/..." />
             </div>
+            
             <div className="space-y-2">
-              <Label htmlFor="liveLink">Live Demo URL (optional)</Label>
-              <Input id="liveLink" value={formData.liveLink} onChange={e => setFormData({ ...formData, liveLink: e.target.value })} placeholder="https://..." />
+              <Label>Upload Source Code (ZIP/Code Files)</Label>
+              <Input 
+                type="file" 
+                onChange={(e) => {
+                  const selectedFile = e.target.files?.[0] || null;
+                  setFile(selectedFile);
+                  if (selectedFile) setFormData({ ...formData, sourceCodeLink: "" });
+                }}
+                accept=".zip,.rar,.tar,.gz,.js,.ts,.py,.java,.cpp,.html,.css,.json"
+              />
+              {uploading && (
+                <div className="w-full bg-secondary h-2 rounded-full overflow-hidden mt-2">
+                  <div className="bg-primary h-full transition-all duration-300" style={{ width: `${uploadProgress}%` }}></div>
+                </div>
+              )}
+              <p className="text-xs text-muted-foreground mt-1">Or provide a direct URL below</p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="sourceCodeLink">External Source Code URL</Label>
+              <Input id="sourceCodeLink" value={formData.sourceCodeLink} onChange={e => setFormData({ ...formData, sourceCodeLink: e.target.value })} placeholder="https://..." disabled={!!file} />
             </div>
 
             <div className="flex justify-end gap-2 pt-4">
               <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
-              <Button type="submit">{editingItem ? "Save Changes" : "Add Project"}</Button>
+              <Button type="submit" disabled={uploading}>
+                {uploading ? "Uploading..." : editingItem ? "Save Changes" : "Add Project"}
+              </Button>
             </div>
           </form>
         </DialogContent>
@@ -169,6 +227,7 @@ export default function ProjectsAdmin() {
               <TableHead>Title</TableHead>
               <TableHead>Difficulty</TableHead>
               <TableHead>Tech Stack</TableHead>
+              <TableHead>Resources</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -194,6 +253,23 @@ export default function ProjectsAdmin() {
                     {t.techStack?.map(tech => (
                        <Badge key={tech} variant="secondary" className="text-xs">{tech}</Badge>
                     ))}
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <div className="flex flex-col gap-1">
+                    {t.githubLink && (
+                      <a href={t.githubLink} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline flex items-center gap-1 text-sm font-medium">
+                        <ExternalLink className="w-3 h-3" /> GitHub
+                      </a>
+                    )}
+                    {t.sourceCodeLink && (
+                      <a href={t.sourceCodeLink} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline flex items-center gap-1 text-sm font-medium">
+                        <ExternalLink className="w-3 h-3" /> Source Code
+                      </a>
+                    )}
+                    {!t.githubLink && !t.sourceCodeLink && (
+                      <span className="text-muted-foreground text-sm italic">No links</span>
+                    )}
                   </div>
                 </TableCell>
                 <TableCell className="text-right space-x-2">
