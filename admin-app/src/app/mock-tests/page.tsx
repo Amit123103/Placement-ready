@@ -203,6 +203,9 @@ export default function MockTestsPage() {
                   </Badge>
                 </TableCell>
                 <TableCell className="text-right space-x-2">
+                  <Button variant="ghost" size="sm" asChild>
+                    <a href={`/mock-tests/${t.id}`}>Build Test</a>
+                  </Button>
                   <Button variant="ghost" size="icon" onClick={() => handleOpenEdit(t)}>
                     <Edit2 className="h-4 w-4 text-blue-500" />
                   </Button>

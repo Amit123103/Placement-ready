@@ -6,10 +6,10 @@ import { cn } from "@/lib/utils";
 import { Navbar } from "@/components/navbar";
 import { Footer } from "@/components/footer";
 import Link from "next/link";
-import { ArrowRight, Code2, Briefcase, Trophy, LineChart, Users, BookOpen, Building } from "lucide-react";
+import { ArrowRight, Code2, Briefcase, Trophy, LineChart, Users, BookOpen, Building, Star } from "lucide-react";
 
 import { useAuth } from "@/contexts/AuthContext";
-import { collection, getCountFromServer } from "firebase/firestore";
+import { collection, getCountFromServer, getDocs, query, orderBy, limit } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useState, useEffect } from "react";
 import CountUp from "react-countup";
@@ -31,6 +31,7 @@ export default function Home() {
     internships: 0,
     resources: 0
   });
+  const [feedbacks, setFeedbacks] = useState<any[]>([]);
 
   useEffect(() => {
     async function fetchStats() {
@@ -47,8 +48,17 @@ export default function Home() {
           internships: internshipsSnapshot.data().count,
           resources: notesSnapshot.data().count + coursesSnapshot.data().count
         });
+
+        // Fetch realtime feedbacks
+        const feedbacksQuery = query(collection(db, 'feedbacks'), orderBy('createdAt', 'desc'), limit(6));
+        const feedbacksSnap = await getDocs(feedbacksQuery);
+        const fetchedFeedbacks: any[] = [];
+        feedbacksSnap.forEach(doc => {
+          fetchedFeedbacks.push({ id: doc.id, ...doc.data() });
+        });
+        setFeedbacks(fetchedFeedbacks);
       } catch (error) {
-        console.error("Error fetching stats:", error);
+        console.error("Error fetching stats or feedbacks:", error);
       }
     }
     fetchStats();
@@ -238,6 +248,52 @@ export default function Home() {
             </div>
           </div>
         </section>
+
+        {/* Realtime Feedback / Testimonials Section */}
+        {feedbacks.length > 0 && (
+          <section id="testimonials" className="py-24 bg-muted/30">
+            <div className="container px-4 md:px-6">
+              <div className="text-center mb-16">
+                <h2 className="text-3xl font-bold tracking-tight sm:text-4xl md:text-5xl">What Our Students Say</h2>
+                <p className="mt-4 text-muted-foreground text-lg">Real feedback from real students on our platform.</p>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {feedbacks.map((fb, i) => (
+                  <motion.div
+                    key={fb.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: i * 0.1 }}
+                    className="bg-card border rounded-2xl p-6 shadow-sm flex flex-col justify-between"
+                  >
+                    <div>
+                      <div className="flex mb-4">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <Star 
+                            key={star} 
+                            className={`w-5 h-5 ${star <= fb.rating ? "fill-yellow-400 text-yellow-400" : "text-muted-foreground/30"}`} 
+                          />
+                        ))}
+                      </div>
+                      <p className="text-foreground italic mb-6">"{fb.review}"</p>
+                    </div>
+                    <div className="flex items-center gap-3 border-t pt-4">
+                      <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
+                        {fb.userName ? fb.userName.charAt(0).toUpperCase() : "S"}
+                      </div>
+                      <div>
+                        <p className="font-semibold text-sm">{fb.userName}</p>
+                        <p className="text-xs text-muted-foreground">Student</p>
+                      </div>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            </div>
+          </section>
+        )}
 
         {/* Final CTA Section */}
         <section className="py-20 md:py-32 relative overflow-hidden">

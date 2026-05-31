@@ -3,7 +3,7 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
-import { Users, FileQuestion, GraduationCap, LineChartIcon, BookOpen, Briefcase, Code2, FileText, PlayCircle, Building2, Terminal, Send } from "lucide-react";
+import { Users, FileQuestion, GraduationCap, LineChartIcon, BookOpen, Briefcase, Code2, FileText, PlayCircle, Building2, Terminal, Send, CheckSquare } from "lucide-react";
 import Link from "next/link";
 import { ProtectedRoute } from "@/components/protected-route";
 import {
@@ -28,6 +28,7 @@ const adminMenu = [
   { title: "User Management", url: "/users", icon: Users },
   { title: "Companies", url: "/companies", icon: Building2 },
   { title: "Mock Tests", url: "/mock-tests", icon: GraduationCap },
+  { title: "Mock Submissions", url: "/mock-test-submissions", icon: CheckSquare },
   { title: "Articles", url: "/articles", icon: BookOpen },
   { title: "Internships", url: "/internships", icon: Briefcase },
   { title: "Projects", url: "/projects", icon: Code2 },
