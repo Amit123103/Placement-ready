@@ -271,7 +271,7 @@ export default function TakeMockTestPage({ params }: { params: Promise<{ id: str
                             placeholder="Write your detailed answer here..." 
                             className="min-h-[250px] resize-y bg-background"
                             value={selectedAnswers[currentQ.id] || ""}
-                            onChange={e => handleSelectOption(currentQ.id, e.target.value)}
+                            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => handleSelectOption(currentQ.id, e.target.value)}
                           />
                         </div>
                       )}

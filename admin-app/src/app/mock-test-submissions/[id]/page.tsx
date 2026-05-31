@@ -10,7 +10,6 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChevronLeft, Send, CheckCircle2, AlertCircle } from "lucide-react";
 import Link from "next/link";
-import { CodeEditor } from "@/components/code-editor";
 
 export default function MockTestReviewPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
