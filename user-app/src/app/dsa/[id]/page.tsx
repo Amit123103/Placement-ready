@@ -13,6 +13,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ChevronLeft, CheckCircle2, Lightbulb, Clock, Database, Terminal, XCircle } from "lucide-react";
 import Link from "next/link";
 import { CodeEditor } from "@/components/code-editor";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function QuestionDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
@@ -22,6 +23,7 @@ export default function QuestionDetailPage({ params }: { params: Promise<{ id: s
   const [output, setOutput] = useState("");
   const [error, setError] = useState("");
   const [submitStatus, setSubmitStatus] = useState<"idle" | "success" | "error">("idle");
+  const { user } = useAuth();
 
   useEffect(() => {
     async function fetchQ() {
@@ -54,7 +56,7 @@ export default function QuestionDetailPage({ params }: { params: Promise<{ id: s
       await addDoc(collection(db, "submissions"), {
         questionId: resolvedParams.id,
         questionTitle: q.title,
-        userId: "Anonymous Student", // Default since no robust auth provided in context
+        userId: user?.email || "Anonymous Student",
         code,
         language,
         status: passed ? "Passed" : "Failed",
