@@ -84,7 +84,7 @@ export default function MockTestReviewPage({ params }: { params: Promise<{ id: s
         throw new Error("Failed to send email");
       }
 
-      setSubmission(prev => ({ ...prev, scores: editedScores, totalScore: newTotal, status: "published" }));
+      setSubmission((prev: any) => ({ ...prev, scores: editedScores, totalScore: newTotal, status: "published" }));
       alert("Report published and email sent successfully!");
     } catch (e) {
       console.error(e);
