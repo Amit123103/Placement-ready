@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 // Firebase imports
 import { db } from "@/lib/firebase";
@@ -28,6 +29,7 @@ export default function MockTestsPage() {
   const [tests, setTests] = useState<MockTest[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingTest, setEditingTest] = useState<MockTest | null>(null);
@@ -86,11 +88,14 @@ export default function MockTestsPage() {
       if (editingTest) {
         await updateDoc(doc(db, "mockTests", editingTest.id), formData);
         setTests(tests.map((t: any) => t.id === editingTest.id ? { ...formData, id: editingTest.id } : t));
+        setIsDialogOpen(false);
+        router.push(`/mock-tests/${editingTest.id}`);
       } else {
         const docRef = await addDoc(collection(db, "mockTests"), formData);
         setTests([...tests, { ...formData, id: docRef.id }]);
+        setIsDialogOpen(false);
+        router.push(`/mock-tests/${docRef.id}`);
       }
-      setIsDialogOpen(false);
     } catch (err) {
       console.error("Error saving:", err);
       alert("Failed to save. Please check your Firebase connection.");
@@ -164,7 +169,7 @@ export default function MockTestsPage() {
 
             <div className="flex justify-end gap-2 pt-4">
               <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
-              <Button type="submit">{editingTest ? "Save Changes" : "Create Test"}</Button>
+              <Button type="submit">{editingTest ? "Save & Manage Questions" : "Create & Add Questions"}</Button>
             </div>
           </form>
         </DialogContent>
