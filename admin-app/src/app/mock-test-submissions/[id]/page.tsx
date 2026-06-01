@@ -239,21 +239,47 @@ export default function MockTestReviewPage({ params }: { params: Promise<{ id: s
                   {q.type === "code" && (
                     <div className="space-y-4">
                       <div className="p-4 bg-muted/40 rounded-xl border">
-                        <span className="text-sm font-bold text-muted-foreground block mb-2">Submitted Code:</span>
-                        <pre className="font-mono text-sm bg-black/90 p-4 rounded text-emerald-400 overflow-x-auto whitespace-pre-wrap">
+                        <div className="flex justify-between items-center mb-2">
+                           <span className="text-sm font-bold text-muted-foreground block">Submitted Code:</span>
+                           {submission.codeDetails?.[q.id] && (
+                             <Badge variant="outline">{submission.codeDetails[q.id].language}</Badge>
+                           )}
+                        </div>
+                        <pre className="font-mono text-sm bg-[#1e1e1e] p-4 rounded-xl text-emerald-400 overflow-x-auto whitespace-pre-wrap shadow-inner">
                           {studentAns || "// No code submitted"}
                         </pre>
                       </div>
                       
-                      <div className="space-y-2">
-                        <span className="text-sm font-bold text-muted-foreground block">Expected Test Cases:</span>
-                        {q.testCases?.map((tc: any, i: number) => (
-                           <div key={i} className="text-xs font-mono bg-muted p-2 rounded-md flex justify-between gap-4">
-                             <div className="flex-1 overflow-hidden text-ellipsis"><strong>In:</strong> {tc.input}</div>
-                             <div className="flex-1 overflow-hidden text-ellipsis text-emerald-500"><strong>Out:</strong> {tc.output}</div>
-                           </div>
-                        ))}
-                      </div>
+                      {submission.codeDetails?.[q.id]?.testResults ? (
+                         <div className="space-y-2">
+                           <span className="text-sm font-bold text-muted-foreground block">Execution Results:</span>
+                           {submission.codeDetails[q.id].testResults.map((tc: any, i: number) => (
+                              <div key={i} className={`text-xs font-mono p-3 rounded-md border ${tc.passed ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-red-500/10 border-red-500/30'}`}>
+                                <div className="flex justify-between mb-2 pb-2 border-b border-black/5 dark:border-white/5">
+                                  <strong>Test Case {i+1}</strong>
+                                  <span className={tc.passed ? "text-emerald-600 font-bold flex items-center gap-1" : "text-red-600 font-bold flex items-center gap-1"}>
+                                      {tc.passed ? <CheckCircle2 className="w-3 h-3" /> : <AlertCircle className="w-3 h-3" />}
+                                      {tc.passed ? "Passed" : "Failed"}
+                                  </span>
+                                </div>
+                                <div className="grid grid-cols-2 gap-4 mt-2">
+                                   <div><strong className="opacity-60 text-[10px] uppercase block mb-1">Expected Output</strong> <span className="text-emerald-600">{tc.expectedOutput}</span></div>
+                                   <div><strong className="opacity-60 text-[10px] uppercase block mb-1">Actual Output / Error</strong> <span className={tc.passed ? "text-emerald-600" : "text-red-600 whitespace-pre-wrap"}>{tc.error || tc.actualOutput || "<empty>"}</span></div>
+                                </div>
+                              </div>
+                           ))}
+                         </div>
+                      ) : (
+                        <div className="space-y-2">
+                          <span className="text-sm font-bold text-muted-foreground block">Expected Test Cases (No execution data found):</span>
+                          {q.testCases?.map((tc: any, i: number) => (
+                             <div key={i} className="text-xs font-mono bg-muted p-2 rounded-md flex justify-between gap-4">
+                               <div className="flex-1 overflow-hidden text-ellipsis"><strong>In:</strong> {tc.input}</div>
+                               <div className="flex-1 overflow-hidden text-ellipsis text-emerald-500"><strong>Out:</strong> {tc.output}</div>
+                             </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   )}
                 </CardContent>

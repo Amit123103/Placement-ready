@@ -29,15 +29,15 @@ export default function TakeMockTestPage() {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [selectedAnswers, setSelectedAnswers] = useState<Record<string, any>>({});
   const [codeScores, setCodeScores] = useState<Record<string, boolean>>({});
+  const [codeDetails, setCodeDetails] = useState<Record<string, any>>({});
+  const [consoleOutput, setConsoleOutput] = useState("");
+  const [consoleError, setConsoleError] = useState("");
   const [timeLeft, setTimeLeft] = useState(0);
   const [isTestRunning, setIsTestRunning] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [testResult, setTestResult] = useState<any>(null);
   
   // Output logs for code execution in test
-  const [consoleOutput, setConsoleOutput] = useState("");
-  const [consoleError, setConsoleError] = useState("");
-
   useEffect(() => {
     if (!authLoading && !user) {
       router.push("/login?redirect=/mock-tests");
@@ -90,9 +90,10 @@ export default function TakeMockTestPage() {
     setConsoleError(err);
   };
 
-  const handleCodeSubmit = (questionId: string, code: string, passed: boolean) => {
+  const handleCodeSubmit = (questionId: string, code: string, language: string, passed: boolean, testResults?: any[]) => {
     handleSelectOption(questionId, code);
     setCodeScores((prev) => ({ ...prev, [questionId]: passed }));
+    setCodeDetails((prev) => ({ ...prev, [questionId]: { language, passed, testResults } }));
     setConsoleOutput(passed ? "All test cases passed! Answer saved." : "Some test cases failed. Answer saved anyway.");
     setConsoleError("");
   };
@@ -140,6 +141,7 @@ export default function TakeMockTestPage() {
       submittedAt: serverTimestamp(),
       status: "pending_review", // Admin needs to review text answers or finalize
       answers: selectedAnswers,
+      codeDetails,
       scores,
       totalScore: totalScoreObtained,
       maxScore: maxPossibleScore,
@@ -370,7 +372,7 @@ export default function TakeMockTestPage() {
                             <CodeEditor 
                               testCases={currentQ.testCases || []} 
                               onRun={handleCodeRun} 
-                              onSubmit={(code, lang, passed) => handleCodeSubmit(currentQ.id, code, passed)}
+                              onSubmit={(code, lang, passed, testResults) => handleCodeSubmit(currentQ.id, code, lang, passed, testResults)}
                             />
                           </div>
                           {(consoleOutput || consoleError) && (
