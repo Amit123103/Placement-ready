@@ -42,6 +42,9 @@ export default function PreviewMockTestPage() {
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
           const data = { id: docSnap.id, ...docSnap.data() } as any;
+          if (!Array.isArray(data.questions)) {
+            data.questions = [];
+          }
           setActiveTest(data);
           setTimeLeft((parseInt(data.duration) || 60) * 60);
         } else {

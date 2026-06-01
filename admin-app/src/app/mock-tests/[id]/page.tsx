@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, use } from "react";
+import { useState, useEffect } from "react";
 import { db } from "@/lib/firebase";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { DashboardLayout } from "@/components/dashboard-layout";
@@ -42,8 +42,10 @@ export default function MockTestBuilderPage() {
         const docRef = doc(db, "mockTests", resolvedId);
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
-          setTestData({ id: docSnap.id, ...docSnap.data() });
-          setQuestions(docSnap.data().questions || []);
+          const data = docSnap.data();
+          setTestData({ id: docSnap.id, ...data });
+          const q = data.questions;
+          setQuestions(Array.isArray(q) ? q : []);
         }
       } catch (e) {
         console.error("Error fetching test:", e);
