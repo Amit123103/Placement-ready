@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { motion, AnimatePresence } from "framer-motion";
 import { Timer, ArrowRight, ArrowLeft, CheckCircle2, RotateCcw, AlertCircle, XCircle, Code as CodeIcon, Terminal } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 import { db } from "@/lib/firebase";
 import { doc, getDoc, collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { CodeEditor } from "@/components/code-editor";
@@ -16,8 +16,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
 
-export default function TakeMockTestPage({ params }: { params: Promise<{ id: string }> }) {
-  const resolvedParams = use(params);
+export default function TakeMockTestPage() {
+  const params = useParams();
+  const resolvedId = params?.id as string;
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
 
@@ -45,8 +46,9 @@ export default function TakeMockTestPage({ params }: { params: Promise<{ id: str
 
   useEffect(() => {
     async function fetchTest() {
+      if (!resolvedId) return;
       try {
-        const docRef = doc(db, "mockTests", resolvedParams.id);
+        const docRef = doc(db, "mockTests", resolvedId);
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
           const data = { id: docSnap.id, ...docSnap.data() } as any;
@@ -62,7 +64,7 @@ export default function TakeMockTestPage({ params }: { params: Promise<{ id: str
       }
     }
     fetchTest();
-  }, [resolvedParams.id, router]);
+  }, [resolvedId, router]);
 
   useEffect(() => {
     if (!isTestRunning || timeLeft <= 0) {

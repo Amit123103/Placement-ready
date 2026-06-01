@@ -12,10 +12,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChevronLeft, Plus, Trash2, CheckCircle2, Code, AlignLeft, List } from "lucide-react";
 import Link from "next/link";
+import { useParams } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 
-export default function MockTestBuilderPage({ params }: { params: Promise<{ id: string }> }) {
-  const resolvedParams = use(params);
+export default function MockTestBuilderPage() {
+  const params = useParams();
+  const resolvedId = params?.id as string;
   const [testData, setTestData] = useState<any>(null);
   const [questions, setQuestions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -35,8 +37,9 @@ export default function MockTestBuilderPage({ params }: { params: Promise<{ id: 
 
   useEffect(() => {
     async function fetchTest() {
+      if (!resolvedId) return;
       try {
-        const docRef = doc(db, "mockTests", resolvedParams.id);
+        const docRef = doc(db, "mockTests", resolvedId);
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
           setTestData({ id: docSnap.id, ...docSnap.data() });
@@ -49,7 +52,7 @@ export default function MockTestBuilderPage({ params }: { params: Promise<{ id: 
       }
     }
     fetchTest();
-  }, [resolvedParams.id]);
+  }, [resolvedId]);
 
   const handleAddQuestion = async () => {
     if (!questionText.trim()) return alert("Question text is required.");
@@ -79,7 +82,7 @@ export default function MockTestBuilderPage({ params }: { params: Promise<{ id: 
     setQuestions(updatedQuestions);
 
     try {
-      await updateDoc(doc(db, "mockTests", resolvedParams.id), { questions: updatedQuestions });
+      await updateDoc(doc(db, "mockTests", resolvedId), { questions: updatedQuestions });
       // Reset form
       setQuestionText("");
       setMarks(1);
@@ -97,7 +100,7 @@ export default function MockTestBuilderPage({ params }: { params: Promise<{ id: 
     const updatedQuestions = questions.filter(q => q.id !== idToRemove);
     setQuestions(updatedQuestions);
     try {
-      await updateDoc(doc(db, "mockTests", resolvedParams.id), { questions: updatedQuestions });
+      await updateDoc(doc(db, "mockTests", resolvedId), { questions: updatedQuestions });
     } catch (e) {
       console.error(e);
     }
