@@ -36,6 +36,13 @@ export default function MockTestsPage() {
 
   const [formData, setFormData] = useState({ title: "", duration: "", questions: 0, status: "Draft" });
 
+  // Helper to safely get question count from either a number or array
+  const getQuestionCount = (q: any): number => {
+    if (Array.isArray(q)) return q.length;
+    if (typeof q === "number") return q;
+    return 0;
+  };
+
   useEffect(() => {
     fetchTests();
   }, []);
@@ -66,7 +73,7 @@ export default function MockTestsPage() {
 
   const handleOpenEdit = (t: MockTest) => {
     setEditingTest(t);
-    setFormData({ title: t.title, duration: t.duration, questions: t.questions, status: t.status });
+    setFormData({ title: t.title, duration: t.duration, questions: getQuestionCount(t.questions), status: t.status });
     setIsDialogOpen(true);
   };
 
@@ -86,8 +93,15 @@ export default function MockTestsPage() {
     e.preventDefault();
     try {
       if (editingTest) {
-        await updateDoc(doc(db, "mockTests", editingTest.id), formData);
-        setTests(tests.map((t: any) => t.id === editingTest.id ? { ...formData, id: editingTest.id } : t));
+        // Only update metadata fields, never overwrite the questions array
+        const updateData: any = { title: formData.title, duration: formData.duration, status: formData.status };
+        // Only set questions count if there's no existing questions array
+        const existingTest = tests.find(t => t.id === editingTest.id);
+        if (!Array.isArray((existingTest as any)?.questions)) {
+          updateData.questions = formData.questions;
+        }
+        await updateDoc(doc(db, "mockTests", editingTest.id), updateData);
+        setTests(tests.map((t: any) => t.id === editingTest.id ? { ...t, ...updateData } : t));
         setIsDialogOpen(false);
         router.push(`/mock-tests/${editingTest.id}`);
       } else {
@@ -201,7 +215,7 @@ export default function MockTestsPage() {
               <TableRow key={t.id}>
                 <TableCell className="font-medium">{t.title}</TableCell>
                 <TableCell>{t.duration}</TableCell>
-                <TableCell>{t.questions}</TableCell>
+                <TableCell>{getQuestionCount(t.questions)}</TableCell>
                 <TableCell>
                   <Badge variant={t.status === "Published" ? "default" : t.status === "Draft" ? "secondary" : "outline"}>
                     {t.status}
