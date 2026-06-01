@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ChevronLeft, Plus, Trash2, CheckCircle2, Code, AlignLeft, List } from "lucide-react";
+import { ChevronLeft, Plus, Trash2, CheckCircle2, Code, AlignLeft, List, Eye } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
@@ -115,10 +115,16 @@ export default function MockTestBuilderPage() {
         <Button variant="outline" size="icon" asChild>
           <Link href="/mock-tests"><ChevronLeft className="w-4 h-4" /></Link>
         </Button>
-        <div>
+        <div className="flex-1">
           <h2 className="text-3xl font-bold tracking-tight">Test Builder</h2>
           <p className="text-muted-foreground mt-1">{testData.title}</p>
         </div>
+        <Button asChild variant="default" className="bg-emerald-600 hover:bg-emerald-700 text-white">
+          <Link href={`/mock-tests/${resolvedId}/preview`}>
+            <Eye className="w-4 h-4 mr-2" />
+            Preview Test
+          </Link>
+        </Button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
