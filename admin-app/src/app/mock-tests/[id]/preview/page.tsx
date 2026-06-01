@@ -123,7 +123,7 @@ export default function PreviewMockTestPage() {
       score: totalScoreObtained,
       maxScore: maxPossibleScore,
       percentage: (totalScoreObtained / maxPossibleScore) * 100,
-      timeSpent: \`\${minutesSpent}m \${secondsSpent}s\`,
+      timeSpent: `${minutesSpent}m ${secondsSpent}s`,
       status: "preview_completed"
     });
   };
@@ -131,7 +131,7 @@ export default function PreviewMockTestPage() {
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
-    return \`\${mins.toString().padStart(2, "0")}:\${secs.toString().padStart(2, "0")}\`;
+    return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
   };
 
   if (loading) return <DashboardLayout><div className="flex min-h-[50vh] items-center justify-center"><div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin"></div></div></DashboardLayout>;
@@ -143,7 +143,7 @@ export default function PreviewMockTestPage() {
     <DashboardLayout>
       <div className="flex items-center gap-4 mb-6">
         <Button variant="outline" size="icon" asChild>
-          <Link href={\`/mock-tests/\${resolvedId}\`}><ChevronLeft className="w-4 h-4" /></Link>
+          <Link href={`/mock-tests/${resolvedId}`}><ChevronLeft className="w-4 h-4" /></Link>
         </Button>
         <div>
           <h2 className="text-3xl font-bold tracking-tight">Preview Test</h2>
@@ -193,13 +193,13 @@ export default function PreviewMockTestPage() {
                             setConsoleOutput("");
                             setConsoleError("");
                           }}
-                          className={\`w-9 h-9 rounded-lg text-sm font-bold flex items-center justify-center transition-all \${
+                          className={`w-9 h-9 rounded-lg text-sm font-bold flex items-center justify-center transition-all ${
                             currentQuestionIndex === idx
                               ? "bg-primary text-primary-foreground ring-2 ring-primary ring-offset-2 ring-offset-background"
                               : selectedAnswers[q.id] !== undefined && selectedAnswers[q.id] !== ""
                               ? "bg-emerald-500/20 text-emerald-600 border border-emerald-500/35"
                               : "bg-muted text-muted-foreground hover:bg-muted/80"
-                          }\`}
+                          }`}
                         >
                           {idx + 1}
                         </button>
@@ -232,13 +232,13 @@ export default function PreviewMockTestPage() {
                               <button
                                 key={idx}
                                 onClick={() => handleSelectOption(currentQ.id, idx)}
-                                className={\`w-full text-left p-4 rounded-xl text-sm font-medium border transition-all flex items-center gap-3 \${
+                                className={`w-full text-left p-4 rounded-xl text-sm font-medium border transition-all flex items-center gap-3 ${
                                   isSelected
                                     ? "bg-primary/10 border-primary text-foreground ring-1 ring-primary"
                                     : "bg-background/40 hover:bg-muted/30 border-border/60 text-muted-foreground hover:text-foreground"
-                                }\`}
+                                }`}
                               >
-                                <span className={\`w-6 h-6 rounded-full flex items-center justify-center border text-xs font-bold transition-all \${isSelected ? "bg-primary text-primary-foreground border-primary" : "border-muted-foreground/30"}\`}>
+                                <span className={`w-6 h-6 rounded-full flex items-center justify-center border text-xs font-bold transition-all ${isSelected ? "bg-primary text-primary-foreground border-primary" : "border-muted-foreground/30"}`}>
                                   {String.fromCharCode(65 + idx)}
                                 </span>
                                 <span>{option}</span>
@@ -263,13 +263,13 @@ export default function PreviewMockTestPage() {
                                     : [...selectedArr, idx];
                                   handleSelectOption(currentQ.id, newArr);
                                 }}
-                                className={\`w-full text-left p-4 rounded-xl text-sm font-medium border transition-all flex items-center gap-3 \${
+                                className={`w-full text-left p-4 rounded-xl text-sm font-medium border transition-all flex items-center gap-3 ${
                                   isSelected
                                     ? "bg-primary/10 border-primary text-foreground ring-1 ring-primary"
                                     : "bg-background/40 hover:bg-muted/30 border-border/60 text-muted-foreground hover:text-foreground"
-                                }\`}
+                                }`}
                               >
-                                <div className={\`w-6 h-6 rounded flex items-center justify-center border transition-all \${isSelected ? "bg-primary text-primary-foreground border-primary" : "border-muted-foreground/30"}\`}>
+                                <div className={`w-6 h-6 rounded flex items-center justify-center border transition-all ${isSelected ? "bg-primary text-primary-foreground border-primary" : "border-muted-foreground/30"}`}>
                                   {isSelected && <CheckCircle2 className="w-4 h-4" />}
                                 </div>
                                 <span>{option}</span>
@@ -395,7 +395,7 @@ export default function PreviewMockTestPage() {
                   
                   <div className="pt-4">
                     <Button asChild className="rounded-xl">
-                      <Link href={\`/mock-tests/\${resolvedId}\`}>Back to Builder</Link>
+                      <Link href={`/mock-tests/${resolvedId}`}>Back to Builder</Link>
                     </Button>
                   </div>
                 </div>
