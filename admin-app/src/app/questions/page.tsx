@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
 
 
 
@@ -24,6 +25,7 @@ interface Question {
   description: string;
   solution?: string;
   testCases?: { input: string; output: string }[];
+  allowCopyPaste?: boolean;
 }
 
 export default function QuestionsPage() {
@@ -42,7 +44,8 @@ export default function QuestionsPage() {
     description: string;
     solution: string;
     testCases: { input: string; output: string }[];
-  }>({ title: "", difficulty: "Easy", category: "Arrays", description: "", solution: "", testCases: [] });
+    allowCopyPaste: boolean;
+  }>({ title: "", difficulty: "Easy", category: "Arrays", description: "", solution: "", testCases: [], allowCopyPaste: false });
 
   useEffect(() => {
     fetchQuestions();
@@ -68,7 +71,7 @@ export default function QuestionsPage() {
 
   const handleOpenAdd = () => {
     setEditingQuestion(null);
-    setFormData({ title: "", difficulty: "Easy", category: "Arrays", description: "", solution: "", testCases: [] });
+    setFormData({ title: "", difficulty: "Easy", category: "Arrays", description: "", solution: "", testCases: [], allowCopyPaste: false });
     setIsDialogOpen(true);
   };
 
@@ -80,7 +83,8 @@ export default function QuestionsPage() {
       category: q.category, 
       description: q.description, 
       solution: q.solution || "",
-      testCases: q.testCases || [] 
+      testCases: q.testCases || [],
+      allowCopyPaste: q.allowCopyPaste || false
     });
     setIsDialogOpen(true);
   };
@@ -202,6 +206,15 @@ export default function QuestionsPage() {
                   <option value="Hard" />
                 </datalist>
               </div>
+            </div>
+
+            <div className="flex items-center space-x-2 pt-2">
+              <Switch 
+                id="allow-copy-paste" 
+                checked={formData.allowCopyPaste}
+                onCheckedChange={(checked) => setFormData({ ...formData, allowCopyPaste: checked })}
+              />
+              <Label htmlFor="allow-copy-paste" className="cursor-pointer">Allow Copy & Paste for Students</Label>
             </div>
 
             <div className="space-y-2">

@@ -14,6 +14,7 @@ import { ChevronLeft, CheckCircle2, Lightbulb, Clock, Database, Terminal, XCircl
 import Link from "next/link";
 import { CodeEditor } from "@/components/code-editor";
 import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
 
 export default function QuestionDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = use(params);
@@ -43,6 +44,26 @@ export default function QuestionDetailPage({ params }: { params: Promise<{ id: s
     }
     fetchQ();
   }, [resolvedParams.id]);
+
+  // Anti-cheat: prevent copy/paste if disabled by admin
+  useEffect(() => {
+    if (!q || q.allowCopyPaste !== false) return;
+
+    const handleCopyPaste = (e: ClipboardEvent) => {
+      e.preventDefault();
+      toast.error("Copy & Paste is disabled for this problem by the admin.");
+    };
+
+    document.addEventListener("copy", handleCopyPaste);
+    document.addEventListener("paste", handleCopyPaste);
+    document.addEventListener("cut", handleCopyPaste);
+
+    return () => {
+      document.removeEventListener("copy", handleCopyPaste);
+      document.removeEventListener("paste", handleCopyPaste);
+      document.removeEventListener("cut", handleCopyPaste);
+    };
+  }, [q]);
 
   const handleRun = (out: string, err: string) => {
     setOutput(out);
@@ -95,7 +116,7 @@ export default function QuestionDetailPage({ params }: { params: Promise<{ id: s
   return (
     <>
       <Navbar />
-      <main className="flex-1 bg-muted/20 min-h-screen flex flex-col">
+      <main className="flex-1 bg-muted/20 min-h-screen flex flex-col" style={{ userSelect: q?.allowCopyPaste === false ? "none" : "auto" }}>
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-[1400px] py-4 flex-1 flex flex-col">
           <Link href="/dsa" className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "mb-4 self-start")}>
             <ChevronLeft className="mr-2 h-4 w-4" /> Back to Problems

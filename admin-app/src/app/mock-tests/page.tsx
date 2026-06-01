@@ -14,6 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 
 
 
@@ -23,6 +24,8 @@ interface MockTest {
   duration: string;
   questions: number;
   status: string;
+  allowCopyPaste?: boolean;
+  allowTabSwitching?: boolean;
 }
 
 export default function MockTestsPage() {
@@ -34,7 +37,14 @@ export default function MockTestsPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingTest, setEditingTest] = useState<MockTest | null>(null);
 
-  const [formData, setFormData] = useState({ title: "", duration: "", questions: 0, status: "Draft" });
+  const [formData, setFormData] = useState({ 
+    title: "", 
+    duration: "", 
+    questions: 0, 
+    status: "Draft",
+    allowCopyPaste: false,
+    allowTabSwitching: false
+  });
 
   // Helper to safely get question count from either a number or array
   const getQuestionCount = (q: any): number => {
@@ -67,13 +77,20 @@ export default function MockTestsPage() {
 
   const handleOpenAdd = () => {
     setEditingTest(null);
-    setFormData({ title: "", duration: "", questions: 0, status: "Draft" });
+    setFormData({ title: "", duration: "", questions: 0, status: "Draft", allowCopyPaste: false, allowTabSwitching: false });
     setIsDialogOpen(true);
   };
 
   const handleOpenEdit = (t: MockTest) => {
     setEditingTest(t);
-    setFormData({ title: t.title, duration: t.duration, questions: getQuestionCount(t.questions), status: t.status });
+    setFormData({ 
+      title: t.title, 
+      duration: t.duration, 
+      questions: getQuestionCount(t.questions), 
+      status: t.status,
+      allowCopyPaste: t.allowCopyPaste || false,
+      allowTabSwitching: t.allowTabSwitching || false
+    });
     setIsDialogOpen(true);
   };
 
@@ -94,7 +111,13 @@ export default function MockTestsPage() {
     try {
       if (editingTest) {
         // Only update metadata fields, never overwrite the questions array
-        const updateData: any = { title: formData.title, duration: formData.duration, status: formData.status };
+        const updateData: any = { 
+          title: formData.title, 
+          duration: formData.duration, 
+          status: formData.status,
+          allowCopyPaste: formData.allowCopyPaste,
+          allowTabSwitching: formData.allowTabSwitching
+        };
         // Only set questions count if there's no existing questions array
         const existingTest = tests.find(t => t.id === editingTest.id);
         if (!Array.isArray((existingTest as any)?.questions)) {
@@ -179,6 +202,32 @@ export default function MockTestsPage() {
                   <SelectItem value="Archived">Archived</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+            
+            <div className="flex flex-col gap-3 py-2 border-t mt-4 pt-4">
+              <Label className="text-muted-foreground font-semibold uppercase text-xs">Anti-Cheat Settings</Label>
+              <div className="flex justify-between items-center bg-muted/30 p-3 rounded-md">
+                <div>
+                  <Label htmlFor="allow-copy-paste" className="font-bold cursor-pointer block">Allow Copy & Paste</Label>
+                  <span className="text-xs text-muted-foreground">Students can copy/paste content during the test.</span>
+                </div>
+                <Switch 
+                  id="allow-copy-paste" 
+                  checked={formData.allowCopyPaste}
+                  onCheckedChange={(checked) => setFormData({ ...formData, allowCopyPaste: checked })}
+                />
+              </div>
+              <div className="flex justify-between items-center bg-muted/30 p-3 rounded-md">
+                <div>
+                  <Label htmlFor="allow-tab-switching" className="font-bold cursor-pointer block">Allow Tab Switching</Label>
+                  <span className="text-xs text-muted-foreground">Students won't get a warning if they switch browser tabs.</span>
+                </div>
+                <Switch 
+                  id="allow-tab-switching" 
+                  checked={formData.allowTabSwitching}
+                  onCheckedChange={(checked) => setFormData({ ...formData, allowTabSwitching: checked })}
+                />
+              </div>
             </div>
 
             <div className="flex justify-end gap-2 pt-4">

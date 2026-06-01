@@ -15,6 +15,7 @@ import { CodeEditor } from "@/components/code-editor";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
+import { toast } from "sonner";
 
 export default function TakeMockTestPage() {
   const params = useParams();
@@ -36,6 +37,7 @@ export default function TakeMockTestPage() {
   const [isTestRunning, setIsTestRunning] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [testResult, setTestResult] = useState<any>(null);
+  const [tabSwitchWarnings, setTabSwitchWarnings] = useState(0);
   
   // Output logs for code execution in test
   useEffect(() => {
@@ -43,6 +45,40 @@ export default function TakeMockTestPage() {
       router.push("/login?redirect=/mock-tests");
     }
   }, [user, authLoading, router]);
+
+  // Anti-cheat enforcement
+  useEffect(() => {
+    if (!activeTest || !isTestRunning) return;
+
+    const allowCopyPaste = activeTest.allowCopyPaste ?? false;
+    const allowTabSwitching = activeTest.allowTabSwitching ?? false;
+
+    const handleCopyPaste = (e: ClipboardEvent) => {
+      if (!allowCopyPaste) {
+        e.preventDefault();
+        toast.error("Copy & Paste is disabled for this test by the admin.");
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (!allowTabSwitching && document.hidden) {
+        setTabSwitchWarnings(prev => prev + 1);
+        toast.error("Warning: Tab switching is not allowed during this test!", { duration: 5000 });
+      }
+    };
+
+    document.addEventListener("copy", handleCopyPaste);
+    document.addEventListener("paste", handleCopyPaste);
+    document.addEventListener("cut", handleCopyPaste);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener("copy", handleCopyPaste);
+      document.removeEventListener("paste", handleCopyPaste);
+      document.removeEventListener("cut", handleCopyPaste);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [activeTest, isTestRunning]);
 
   useEffect(() => {
     async function fetchTest() {
@@ -145,7 +181,8 @@ export default function TakeMockTestPage() {
       scores,
       totalScore: totalScoreObtained,
       maxScore: maxPossibleScore,
-      timeSpentSeconds: elapsedSeconds
+      timeSpentSeconds: elapsedSeconds,
+      tabSwitchWarnings
     };
 
     try {
@@ -213,7 +250,7 @@ export default function TakeMockTestPage() {
   }
 
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className="flex flex-col min-h-screen" style={{ userSelect: activeTest?.allowCopyPaste === false ? "none" : "auto" }}>
       <Navbar />
 
       <main className="flex-1 bg-muted/20 min-h-screen relative overflow-hidden py-12">

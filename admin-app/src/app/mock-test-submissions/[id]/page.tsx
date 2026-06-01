@@ -136,6 +136,16 @@ export default function MockTestReviewPage({ params }: { params: Promise<{ id: s
                 <span className="text-sm text-muted-foreground block">Time Spent</span>
                 <span className="font-medium">{Math.floor(submission.timeSpentSeconds / 60)}m {submission.timeSpentSeconds % 60}s</span>
               </div>
+              {submission.tabSwitchWarnings !== undefined && (
+                <div>
+                  <span className="text-sm text-muted-foreground block flex items-center gap-1">
+                    Anti-Cheat (Tab Switches)
+                  </span>
+                  <span className={`font-bold ${submission.tabSwitchWarnings > 0 ? "text-destructive" : "text-emerald-500"}`}>
+                    {submission.tabSwitchWarnings} {submission.tabSwitchWarnings === 1 ? 'Warning' : 'Warnings'}
+                  </span>
+                </div>
+              )}
               <div>
                 <span className="text-sm text-muted-foreground block">Total Score</span>
                 <span className="text-3xl font-bold text-primary">
