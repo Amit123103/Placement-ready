@@ -410,6 +410,7 @@ export default function TakeMockTestPage() {
                               testCases={currentQ.testCases || []} 
                               onRun={handleCodeRun} 
                               onSubmit={(code, lang, passed, testResults) => handleCodeSubmit(currentQ.id, code, lang, passed, testResults)}
+                              allowCopyPaste={activeTest?.allowCopyPaste ?? true}
                             />
                           </div>
                           {(consoleOutput || consoleError) && (

@@ -187,6 +187,7 @@ export default function QuestionDetailPage({ params }: { params: Promise<{ id: s
                   testCases={q.testCases || []} 
                   onRun={handleRun} 
                   onSubmit={handleSubmit} 
+                  allowCopyPaste={q.allowCopyPaste ?? true}
                 />
               </div>
               

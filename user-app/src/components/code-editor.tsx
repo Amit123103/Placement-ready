@@ -154,9 +154,10 @@ interface CodeEditorProps {
   readOnly?: boolean;
   initialCode?: string;
   initialLanguage?: string;
+  allowCopyPaste?: boolean;
 }
 
-export function CodeEditor({ testCases, onRun, onSubmit, readOnly = false, initialCode, initialLanguage }: CodeEditorProps) {
+export function CodeEditor({ testCases, onRun, onSubmit, readOnly = false, initialCode, initialLanguage, allowCopyPaste = true }: CodeEditorProps) {
   const defaultLang = LANGUAGES.find(l => l.name === initialLanguage) || LANGUAGES[0];
   const [language, setLanguage] = useState(defaultLang);
   const [code, setCode] = useState(initialCode || LANGUAGE_BOILERPLATES[defaultLang.id]);
@@ -175,6 +176,20 @@ export function CodeEditor({ testCases, onRun, onSubmit, readOnly = false, initi
       setCode(LANGUAGE_BOILERPLATES[selected.id] || "");
     }
     setTestResults(null);
+  };
+
+  const handleEditorDidMount = (editor: any, monaco: any) => {
+    if (allowCopyPaste === false) {
+      editor.onKeyDown((e: any) => {
+        // block Ctrl/Cmd + C, V, X
+        const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+        const isModifier = isMac ? e.metaKey : e.ctrlKey;
+        if (isModifier && (e.browserEvent.key === 'c' || e.browserEvent.key === 'v' || e.browserEvent.key === 'x')) {
+          e.preventDefault();
+          e.stopPropagation();
+        }
+      });
+    }
   };
 
   const toggleTheme = () => {
@@ -347,7 +362,9 @@ export function CodeEditor({ testCases, onRun, onSubmit, readOnly = false, initi
             readOnly: readOnly,
             scrollBeyondLastLine: false,
             smoothScrolling: true,
+            contextmenu: allowCopyPaste !== false,
           }}
+          onMount={handleEditorDidMount}
         />
       </div>
 
