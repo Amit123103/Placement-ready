@@ -50,7 +50,7 @@ export default function MockTestsPage() {
             category: "General", // Default if not in schema
             duration: parseInt(d.duration) || 60,
             difficulty: "Medium",
-            questionsCount: d.questions || (d.questions ? d.questions.length : 0),
+            questionsCount: Array.isArray(d.questions) ? d.questions.length : (typeof d.questions === "number" ? d.questions : 0),
           });
         });
         setTests(data);

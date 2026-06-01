@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useEffect, use } from "react";
+import { useState, useEffect } from "react";
 import { Navbar } from "@/components/navbar";
 import { Footer } from "@/components/footer";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { motion, AnimatePresence } from "framer-motion";
-import { Timer, ArrowRight, ArrowLeft, CheckCircle2, RotateCcw, AlertCircle, XCircle, Code as CodeIcon, Terminal } from "lucide-react";
+import { Timer, ArrowRight, ArrowLeft, CheckCircle2, Terminal, AlertCircle } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRouter, useParams } from "next/navigation";
 import { db } from "@/lib/firebase";
@@ -52,6 +52,10 @@ export default function TakeMockTestPage() {
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
           const data = { id: docSnap.id, ...docSnap.data() } as any;
+          // Ensure questions is always an array
+          if (!Array.isArray(data.questions)) {
+            data.questions = [];
+          }
           setActiveTest(data);
           setTimeLeft((parseInt(data.duration) || 60) * 60);
         } else {
@@ -103,7 +107,7 @@ export default function TakeMockTestPage() {
     let maxPossibleScore = 0;
     const scores: Record<string, number> = {};
 
-    activeTest.questions?.forEach((q: any) => {
+    (activeTest.questions || []).forEach((q: any) => {
       maxPossibleScore += q.marks || 1;
       let qScore = 0;
       
@@ -150,7 +154,7 @@ export default function TakeMockTestPage() {
       setTestResult({
         score: totalScoreObtained,
         maxScore: maxPossibleScore,
-        percentage: (totalScoreObtained / maxPossibleScore) * 100,
+        percentage: maxPossibleScore > 0 ? (totalScoreObtained / maxPossibleScore) * 100 : 0,
         timeSpent: `${minutesSpent}m ${secondsSpent}s`,
         status: "pending_review"
       });
@@ -171,7 +175,40 @@ export default function TakeMockTestPage() {
   if (authLoading || loading) return <div className="flex min-h-screen items-center justify-center"><div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin"></div></div>;
   if (!activeTest) return <div className="p-8 text-center">Test not found</div>;
 
-  const currentQ = activeTest.questions?.[currentQuestionIndex];
+  const questions = activeTest.questions || [];
+  const currentQ = questions[currentQuestionIndex];
+
+  // If the test has no questions at all, show a friendly message
+  if (questions.length === 0) {
+    return (
+      <div className="flex flex-col min-h-screen">
+        <Navbar />
+        <main className="flex-1 bg-muted/20 min-h-screen relative overflow-hidden py-12">
+          <div className="container max-w-3xl mx-auto px-4 md:px-6 relative z-10">
+            <motion.div
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-card/80 backdrop-blur-md p-10 rounded-3xl border border-border/60 shadow-xl text-center space-y-6"
+            >
+              <div className="mx-auto w-20 h-20 bg-yellow-500/10 rounded-full flex items-center justify-center text-yellow-500">
+                <AlertCircle className="w-10 h-10" />
+              </div>
+              <h2 className="text-3xl font-extrabold">No Questions Available</h2>
+              <p className="text-muted-foreground text-lg">
+                This test doesn&apos;t have any questions yet. The admin hasn&apos;t added questions to <strong className="text-foreground">{activeTest.title}</strong>.
+              </p>
+              <div className="pt-4">
+                <Button asChild className="rounded-xl">
+                  <Link href="/mock-tests">Return to Tests</Link>
+                </Button>
+              </div>
+            </motion.div>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -181,7 +218,7 @@ export default function TakeMockTestPage() {
         <div className="container max-w-6xl mx-auto px-4 md:px-6 relative z-10">
           <AnimatePresence mode="wait">
             {/* SCREEN: Test Simulator */}
-            {isTestRunning && activeTest && !testResult && (
+            {isTestRunning && activeTest && !testResult && currentQ && (
               <motion.div
                 key="simulator"
                 initial={{ opacity: 0, scale: 0.98 }}
@@ -211,7 +248,7 @@ export default function TakeMockTestPage() {
                       Questions
                     </h4>
                     <div className="grid grid-cols-5 gap-2">
-                      {activeTest.questions?.map((q: any, idx: number) => (
+                      {questions.map((q: any, idx: number) => (
                         <button
                           key={q.id}
                           onClick={() => {
@@ -237,20 +274,20 @@ export default function TakeMockTestPage() {
                   <div className="md:col-span-3 bg-card/60 backdrop-blur-md p-8 rounded-2xl border border-border/50 shadow-md flex flex-col min-h-[500px]">
                     <div className="flex justify-between items-center mb-6">
                       <span className="text-sm font-semibold text-primary">
-                        Question {currentQuestionIndex + 1} of {activeTest.questions?.length}
+                        Question {currentQuestionIndex + 1} of {questions.length}
                       </span>
                       <Badge variant="outline" className="border-border">
-                        {currentQ.type.toUpperCase()} • {currentQ.marks} Marks
+                        {(currentQ.type || "unknown").toUpperCase()} • {currentQ.marks || 1} Marks
                       </Badge>
                     </div>
 
                     <h3 className="text-xl font-semibold leading-relaxed text-foreground mb-8 whitespace-pre-wrap">
-                      {currentQ.questionText}
+                      {currentQ.questionText || "No question text provided."}
                     </h3>
 
                     {/* Question Input Areas */}
                     <div className="flex-1 mb-8">
-                      {currentQ.type === "mcq" && (
+                      {currentQ.type === "mcq" && currentQ.options && (
                         <div className="space-y-3">
                           {currentQ.options.map((option: string, idx: number) => {
                             const isSelected = selectedAnswers[currentQ.id] === idx;
@@ -274,7 +311,7 @@ export default function TakeMockTestPage() {
                         </div>
                       )}
 
-                      {currentQ.type === "msq" && (
+                      {currentQ.type === "msq" && currentQ.options && (
                         <div className="space-y-3">
                           <p className="text-sm text-muted-foreground mb-4">Select all that apply.</p>
                           {currentQ.options.map((option: string, idx: number) => {
@@ -364,7 +401,7 @@ export default function TakeMockTestPage() {
                         Previous
                       </Button>
 
-                      {currentQuestionIndex < (activeTest.questions?.length || 1) - 1 ? (
+                      {currentQuestionIndex < (questions.length || 1) - 1 ? (
                         <Button
                           onClick={() => {
                             setCurrentQuestionIndex((prev) => prev + 1);
