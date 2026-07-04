@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 // Firebase imports
 import { db } from "@/lib/firebase";
-import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc } from "firebase/firestore";
+import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, getDoc } from "firebase/firestore";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -110,26 +110,35 @@ export default function QuestionsPage() {
         setQuestions(questions.map((q: any) => q.id === editingQuestion.id ? { ...formData, id: editingQuestion.id } : q));
       } else {
         // Add
-        const docRef = await addDoc(collection(db, "questions"), formData);
-        setQuestions([...questions, { ...formData, id: docRef.id }]);
+        const newData = { ...formData, createdAt: new Date().toISOString() };
+        const docRef = await addDoc(collection(db, "questions"), newData);
+        setQuestions([...questions, { ...newData, id: docRef.id }]);
         
-        // Trigger broadcast email
-        const motivationText = "Sharpening your skills daily is the key to landing your dream job. Don't let this opportunity slip by! Practice makes perfect.";
-        const shortDescription = formData.description.length > 150 ? formData.description.substring(0, 150) + "..." : formData.description;
-        
-        fetch('/api/broadcast', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            subject: 'New DSA Question Added!',
-            message: `A new ${formData.difficulty} question "<strong>${formData.title}</strong>" has been added to the ${formData.category} category.<br/><br/>
-            <strong>Brief Introduction:</strong><br/>
-            ${shortDescription}<br/><br/>
-            <strong>Motivation:</strong><br/>
-            ${motivationText}<br/><br/>
-            Log in to practice it now!`
-          })
-        }).catch(console.error);
+        try {
+          const settingsSnap = await getDoc(doc(db, "settings", "notifications"));
+          const settings = settingsSnap.exists() ? settingsSnap.data() : null;
+          
+          if (!settings || settings.questions !== false) {
+            const motivationText = "Sharpening your skills daily is the key to landing your dream job. Don't let this opportunity slip by! Practice makes perfect.";
+            const shortDescription = formData.description.length > 150 ? formData.description.substring(0, 150) + "..." : formData.description;
+            
+            fetch('/api/broadcast', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                subject: 'New DSA Question Added!',
+                message: `A new ${formData.difficulty} question "<strong>${formData.title}</strong>" has been added to the ${formData.category} category.<br/><br/>
+                <strong>Brief Introduction:</strong><br/>
+                ${shortDescription}<br/><br/>
+                <strong>Motivation:</strong><br/>
+                ${motivationText}<br/><br/>
+                Log in to practice it now!`
+              })
+            }).catch(console.error);
+          }
+        } catch (e) {
+          console.error("Error checking settings for broadcast", e);
+        }
       }
       setIsDialogOpen(false);
     } catch (err) {

@@ -34,7 +34,9 @@ export default function TakeMockTestPage() {
   const [consoleOutput, setConsoleOutput] = useState("");
   const [consoleError, setConsoleError] = useState("");
   const [timeLeft, setTimeLeft] = useState(0);
-  const [isTestRunning, setIsTestRunning] = useState(true);
+  const [isTestRunning, setIsTestRunning] = useState(false); // starts false
+  const [isTestStarted, setIsTestStarted] = useState(false);
+  const [isFullscreenError, setIsFullscreenError] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [testResult, setTestResult] = useState<any>(null);
   const [tabSwitchWarnings, setTabSwitchWarnings] = useState(0);
@@ -62,21 +64,48 @@ export default function TakeMockTestPage() {
 
     const handleVisibilityChange = () => {
       if (!allowTabSwitching && document.hidden) {
-        setTabSwitchWarnings(prev => prev + 1);
-        toast.error("Warning: Tab switching is not allowed during this test!", { duration: 5000 });
+        setTabSwitchWarnings(prev => {
+          const next = prev + 1;
+          if (next >= 5) {
+            toast.error("Test Auto-Submitted due to 5 violations!", { duration: 5000 });
+            handleSubmitTest();
+          } else {
+            toast.error(`Warning: Tab switching is not allowed! (${next}/5 Violations)`, { duration: 5000 });
+          }
+          return next;
+        });
+      }
+    };
+    
+    const handleFullscreenChange = () => {
+      if (!document.fullscreenElement) {
+        setIsTestRunning(false);
+        setIsFullscreenError(true);
+        setTabSwitchWarnings(prev => {
+          const next = prev + 1;
+          if (next >= 5) {
+             toast.error("Test Auto-Submitted due to 5 violations!", { duration: 5000 });
+             handleSubmitTest();
+          }
+          return next;
+        });
       }
     };
 
     document.addEventListener("copy", handleCopyPaste);
     document.addEventListener("paste", handleCopyPaste);
     document.addEventListener("cut", handleCopyPaste);
+    document.addEventListener("contextmenu", handleCopyPaste as any);
     document.addEventListener("visibilitychange", handleVisibilityChange);
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
 
     return () => {
       document.removeEventListener("copy", handleCopyPaste);
       document.removeEventListener("paste", handleCopyPaste);
       document.removeEventListener("cut", handleCopyPaste);
+      document.removeEventListener("contextmenu", handleCopyPaste as any);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
+      document.removeEventListener("fullscreenchange", handleFullscreenChange);
     };
   }, [activeTest, isTestRunning]);
 
@@ -256,6 +285,48 @@ export default function TakeMockTestPage() {
       <main className="flex-1 bg-muted/20 min-h-screen relative overflow-hidden py-12">
         <div className="container max-w-6xl mx-auto px-4 md:px-6 relative z-10">
           <AnimatePresence mode="wait">
+            {/* SCREEN: Start / Resume Fullscreen */}
+            {!isTestRunning && !testResult && (
+              <motion.div
+                key="start"
+                initial={{ opacity: 0, scale: 0.98 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.98 }}
+                className="max-w-2xl mx-auto text-center space-y-6 bg-card/80 backdrop-blur-md p-10 rounded-3xl border border-border/60 shadow-xl"
+              >
+                <div className="mx-auto w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center text-primary">
+                  <AlertCircle className="w-10 h-10" />
+                </div>
+                <h2 className="text-3xl font-extrabold">{isTestStarted ? "Test Paused" : "Ready to Start?"}</h2>
+                <p className="text-muted-foreground text-lg">
+                  {isTestStarted 
+                    ? "You exited full-screen mode, which is a violation. Please resume the test in full-screen mode."
+                    : "This mock test is strictly proctored. It will run in full-screen mode. Do not switch tabs or exit full-screen, as this will result in violations."}
+                </p>
+                {tabSwitchWarnings > 0 && (
+                  <div className="bg-destructive/10 text-destructive font-bold p-3 rounded-lg border border-destructive/20 inline-block">
+                    Current Violations: {tabSwitchWarnings} / 5
+                  </div>
+                )}
+                <div className="pt-6">
+                  <Button 
+                    size="lg" 
+                    className="w-full text-lg h-14 font-bold"
+                    onClick={() => {
+                      document.documentElement.requestFullscreen().catch(err => {
+                        toast.error("Failed to enter full screen. Please allow full screen permissions.");
+                      });
+                      setIsTestStarted(true);
+                      setIsTestRunning(true);
+                      setIsFullscreenError(false);
+                    }}
+                  >
+                    {isTestStarted ? "Resume Full Screen" : "Start Test in Full Screen"}
+                  </Button>
+                </div>
+              </motion.div>
+            )}
+
             {/* SCREEN: Test Simulator */}
             {isTestRunning && activeTest && !testResult && currentQ && (
               <motion.div
@@ -273,9 +344,16 @@ export default function TakeMockTestPage() {
                     </span>
                     <h2 className="text-2xl font-bold">{activeTest.title}</h2>
                   </div>
-                  <div className="flex items-center gap-3 bg-destructive/10 text-destructive border border-destructive/20 px-4 py-2 rounded-xl text-lg font-black tracking-wider">
-                    <Timer className="w-5 h-5 animate-pulse" />
-                    <span>{formatTime(timeLeft)}</span>
+                  <div className="flex flex-col sm:flex-row items-center gap-3">
+                    {tabSwitchWarnings > 0 && (
+                      <div className="bg-destructive/10 text-destructive border border-destructive/20 px-3 py-1.5 rounded-lg text-sm font-bold animate-pulse">
+                        Violations: {tabSwitchWarnings}/5
+                      </div>
+                    )}
+                    <div className="flex items-center gap-3 bg-destructive/10 text-destructive border border-destructive/20 px-4 py-2 rounded-xl text-lg font-black tracking-wider">
+                      <Timer className="w-5 h-5 animate-pulse" />
+                      <span>{formatTime(timeLeft)}</span>
+                    </div>
                   </div>
                 </div>
 

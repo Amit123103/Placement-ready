@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 // Firebase imports
 import { db } from "@/lib/firebase";
-import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc } from "firebase/firestore";
+import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, getDoc } from "firebase/firestore";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -91,9 +91,35 @@ export default function ArticlesPage() {
         setArticles(articles.map(a => a.id === editingArticle.id ? { ...a, ...formData } : a));
       } else {
         // Add
-        const newArticle = { ...formData, publishDate: new Date().toISOString().split('T')[0] };
+        const newArticle = { ...formData, publishDate: new Date().toISOString().split('T')[0], createdAt: new Date().toISOString() };
         const docRef = await addDoc(collection(db, "articles"), newArticle);
         setArticles([...articles, { ...newArticle, id: docRef.id }]);
+
+        try {
+          const settingsSnap = await getDoc(doc(db, "settings", "notifications"));
+          const settings = settingsSnap.exists() ? settingsSnap.data() : null;
+          
+          if (!settings || settings.articles !== false) {
+            const motivationText = "Reading expands your perspective. Check out this new article to gain valuable insights!";
+            const shortDescription = newArticle.content.length > 150 ? newArticle.content.substring(0, 150) + "..." : newArticle.content;
+
+            fetch('/api/broadcast', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                subject: 'New Article Published!',
+                message: `A new article "<strong>${newArticle.title}</strong>" has been published in the ${newArticle.category} category.<br/><br/>
+                <strong>Excerpt:</strong><br/>
+                ${shortDescription}<br/><br/>
+                <strong>Motivation:</strong><br/>
+                ${motivationText}<br/><br/>
+                Log in to read the full article now!`
+              })
+            }).catch(console.error);
+          }
+        } catch (e) {
+          console.error("Error checking settings for broadcast", e);
+        }
       }
       setIsDialogOpen(false);
     } catch (err) {

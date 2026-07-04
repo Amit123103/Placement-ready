@@ -16,6 +16,7 @@ interface Note {
   subject: string;
   description: string;
   downloadLink: string;
+  createdAt?: string;
 }
 
 export default function NotesPage() {
@@ -144,6 +145,11 @@ export default function NotesPage() {
                       <p className="text-sm text-muted-foreground mb-4">
                         {note.description}
                       </p>
+                      {note.createdAt && (
+                        <p className="text-[11px] text-muted-foreground/70 mb-3">
+                          Added on {new Date(note.createdAt).toLocaleDateString()} at {new Date(note.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </p>
+                      )}
                       <Button variant="secondary" size="sm" className="group" asChild>
                         <a href={note.downloadLink} target="_blank" rel="noopener noreferrer">
                           <Download className="w-4 h-4 mr-2 group-hover:-translate-y-0.5 transition-transform" />

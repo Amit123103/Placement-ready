@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { db, storage } from "@/lib/firebase";
-import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc } from "firebase/firestore";
+import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, getDoc } from "firebase/firestore";
 import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { Button } from "@/components/ui/button";
@@ -135,8 +135,37 @@ export default function ProjectsAdmin() {
         await updateDoc(doc(db, "projects", editingItem.id), submitData);
         setProjects(projects.map(t => t.id === editingItem.id ? { ...submitData, id: editingItem.id } as Project : t));
       } else {
-        const docRef = await addDoc(collection(db, "projects"), submitData);
-        setProjects([...projects, { ...submitData, id: docRef.id } as Project]);
+        const newData = { ...submitData, createdAt: new Date().toISOString() };
+        const docRef = await addDoc(collection(db, "projects"), newData);
+        setProjects([...projects, { ...newData, id: docRef.id } as Project]);
+
+        try {
+          const settingsSnap = await getDoc(doc(db, "settings", "notifications"));
+          const settings = settingsSnap.exists() ? settingsSnap.data() : null;
+          
+          if (!settings || settings.projects !== false) {
+            const motivationText = "Building projects is the best way to prove your skills to recruiters. Dive into this new project and boost your resume!";
+            const shortDescription = submitData.description.length > 150 ? submitData.description.substring(0, 150) + "..." : submitData.description;
+
+            fetch('/api/broadcast', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                subject: 'New Project Added!',
+                message: `A new ${submitData.difficulty} level project "<strong>${submitData.title}</strong>" has been added.<br/><br/>
+                <strong>Brief Introduction:</strong><br/>
+                ${shortDescription}<br/><br/>
+                <strong>Tech Stack:</strong><br/>
+                ${submitData.techStack.join(', ')}<br/><br/>
+                <strong>Motivation:</strong><br/>
+                ${motivationText}<br/><br/>
+                Log in to start building it now!`
+              })
+            }).catch(console.error);
+          }
+        } catch (e) {
+          console.error("Error checking settings for broadcast", e);
+        }
       }
       setIsDialogOpen(false);
     } catch (err) {

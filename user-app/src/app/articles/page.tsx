@@ -22,6 +22,7 @@ interface Article {
   publishDate: string;
   status: string;
   content: string;
+  createdAt?: string;
 }
 
 export default function ArticlesPage() {
@@ -123,7 +124,13 @@ export default function ArticlesPage() {
                     </h3>
                     <p className="text-sm text-muted-foreground mb-4">By {a.author}</p>
                     
-                    <div className="mt-auto pt-4">
+                    {a.createdAt && (
+                      <p className="text-[11px] text-muted-foreground/70 mt-auto mb-2">
+                        Added on {new Date(a.createdAt).toLocaleDateString()} at {new Date(a.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </p>
+                    )}
+
+                    <div className="pt-2">
                       <Link 
                         href={`/articles/${a.id}`}
                         className={cn(buttonVariants({ variant: "default" }), "w-full")}

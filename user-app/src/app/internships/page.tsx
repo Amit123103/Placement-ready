@@ -20,6 +20,7 @@ interface Internship {
   description: string;
   applyLink: string;
   type: string; // e.g. "Remote", "On-site"
+  createdAt?: string;
 }
 
 export default function InternshipsPage() {
@@ -158,6 +159,12 @@ export default function InternshipsPage() {
                         <span className="line-clamp-3">{internship.description}</span>
                       </div>
                     </div>
+
+                    {internship.createdAt && (
+                      <p className="text-[11px] text-muted-foreground/70 mb-3 text-center">
+                        Added on {new Date(internship.createdAt).toLocaleDateString()} at {new Date(internship.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </p>
+                    )}
 
                     <Button className="w-full group" asChild>
                       <a 

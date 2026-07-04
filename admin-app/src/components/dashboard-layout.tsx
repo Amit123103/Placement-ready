@@ -3,7 +3,7 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Button } from "@/components/ui/button";
-import { Users, FileQuestion, GraduationCap, LineChartIcon, BookOpen, Briefcase, Code2, FileText, PlayCircle, Building2, Terminal, Send, CheckSquare } from "lucide-react";
+import { Users, FileQuestion, GraduationCap, LineChartIcon, BookOpen, Briefcase, Code2, FileText, PlayCircle, Building2, Terminal, Send, CheckSquare, Settings } from "lucide-react";
 import Link from "next/link";
 import { ProtectedRoute } from "@/components/protected-route";
 import {
@@ -34,6 +34,7 @@ const adminMenu = [
   { title: "Projects", url: "/projects", icon: Code2 },
   { title: "Notes", url: "/notes", icon: FileText },
   { title: "Courses", url: "/courses", icon: PlayCircle },
+  { title: "Settings", url: "/settings", icon: Settings },
 ];
 
 export function DashboardLayout({ children }: { children: React.ReactNode }) {

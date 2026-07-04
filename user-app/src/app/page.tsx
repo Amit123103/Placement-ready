@@ -94,7 +94,7 @@ export default function Home() {
                   <span>🌟 Start practicing today to land your dream job!</span>
                 </div>
               </div>
-              <h1 className="text-3xl font-extrabold tracking-tight sm:text-4xl md:text-5xl lg:text-6xl">
+              <h1 className="text-2xl font-extrabold tracking-tight sm:text-3xl md:text-4xl lg:text-5xl">
                 Land Your <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary">Dream Job</span>
               </h1>
               <p className="mx-auto max-w-[600px] text-muted-foreground md:text-lg">

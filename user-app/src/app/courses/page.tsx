@@ -20,6 +20,7 @@ interface Course {
   rating: number;
   link: string;
   image?: string;
+  createdAt?: string;
 }
 
 export default function CoursesPage() {
@@ -156,6 +157,12 @@ export default function CoursesPage() {
                         <Badge variant="outline" className="bg-background/50">{course.level}</Badge>
                       </div>
                     </div>
+
+                    {course.createdAt && (
+                      <p className="text-[11px] text-muted-foreground/70 mb-4 text-center">
+                        Added on {new Date(course.createdAt).toLocaleDateString()} at {new Date(course.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </p>
+                    )}
 
                     <Button className="w-full group" asChild>
                       <a href={course.link} target="_blank" rel="noopener noreferrer">

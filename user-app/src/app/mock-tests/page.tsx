@@ -20,6 +20,7 @@ interface MockTest {
   difficulty: "Easy" | "Medium" | "Hard" | string;
   questionsCount: number;
   questions?: any[];
+  createdAt?: string;
 }
 
 export default function MockTestsPage() {
@@ -139,7 +140,7 @@ export default function MockTestsPage() {
                           {test.title}
                         </h3>
 
-                        <div className="flex items-center gap-4 text-sm text-muted-foreground mb-6">
+                        <div className="flex items-center gap-4 text-sm text-muted-foreground mb-4">
                           <span className="flex items-center gap-1.5">
                             <Timer className="w-4 h-4 text-muted-foreground" />
                             {test.duration} mins
@@ -149,6 +150,12 @@ export default function MockTestsPage() {
                             {test.questionsCount} Questions
                           </span>
                         </div>
+
+                        {test.createdAt && (
+                          <p className="text-[11px] text-muted-foreground/70 mb-4 text-center">
+                            Added on {new Date(test.createdAt).toLocaleDateString()} at {new Date(test.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </p>
+                        )}
 
                         <Link
                           href={`/mock-tests/${test.id}/take`}

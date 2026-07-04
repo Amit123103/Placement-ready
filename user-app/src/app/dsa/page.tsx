@@ -21,6 +21,7 @@ interface Question {
   difficulty: string;
   category: string;
   description?: string;
+  createdAt?: string;
 }
 
 export default function DSAPage() {
@@ -172,9 +173,16 @@ export default function DSAPage() {
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                               </svg>
                             </div>
-                            <span className="font-semibold text-base group-hover:text-primary transition-colors">
-                              {q.title}
-                            </span>
+                            <div className="flex flex-col">
+                              <span className="font-semibold text-base group-hover:text-primary transition-colors">
+                                {q.title}
+                              </span>
+                              {q.createdAt && (
+                                <span className="text-[10px] text-muted-foreground mt-0.5">
+                                  Added on {new Date(q.createdAt).toLocaleDateString()} at {new Date(q.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                </span>
+                              )}
+                            </div>
                           </div>
                           
                           <div className="flex items-center gap-2 mt-2 sm:mt-0 ml-11 sm:ml-0">

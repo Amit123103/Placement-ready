@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { db, storage } from "@/lib/firebase";
-import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc } from "firebase/firestore";
+import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, getDoc } from "firebase/firestore";
 import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { Button } from "@/components/ui/button";
@@ -126,24 +126,33 @@ export default function NotesAdmin() {
         await updateDoc(doc(db, "notes", editingItem.id), noteData);
         setNotes(notes.map(t => t.id === editingItem.id ? { ...noteData, id: editingItem.id } as Note : t));
       } else {
-        const docRef = await addDoc(collection(db, "notes"), noteData);
-        setNotes([...notes, { ...noteData, id: docRef.id } as Note]);
+        const newData = { ...noteData, createdAt: new Date().toISOString() };
+        const docRef = await addDoc(collection(db, "notes"), newData);
+        setNotes([...notes, { ...newData, id: docRef.id } as Note]);
         
-        // Trigger broadcast email
-        const motivationText = "Top students are those who consistently prepare. Access these notes now to stay ahead of the curve and boost your placement chances!";
-        fetch('/api/broadcast', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            subject: 'New Study Material Added!',
-            message: `A new note <strong>${formData.title}</strong> for the subject <strong>${formData.subject}</strong> has been uploaded.<br/><br/>
-            <strong>Brief Introduction:</strong><br/>
-            ${formData.description}<br/><br/>
-            <strong>Motivation:</strong><br/>
-            ${motivationText}<br/><br/>
-            Log in to the Notes section to download and read it now!`
-          })
-        }).catch(console.error);
+        try {
+          const settingsSnap = await getDoc(doc(db, "settings", "notifications"));
+          const settings = settingsSnap.exists() ? settingsSnap.data() : null;
+          
+          if (!settings || settings.notes !== false) {
+            const motivationText = "Top students are those who consistently prepare. Access these notes now to stay ahead of the curve and boost your placement chances!";
+            fetch('/api/broadcast', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                subject: 'New Study Material Added!',
+                message: `A new note <strong>${formData.title}</strong> for the subject <strong>${formData.subject}</strong> has been uploaded.<br/><br/>
+                <strong>Brief Introduction:</strong><br/>
+                ${formData.description}<br/><br/>
+                <strong>Motivation:</strong><br/>
+                ${motivationText}<br/><br/>
+                Log in to the Notes section to download and read it now!`
+              })
+            }).catch(console.error);
+          }
+        } catch (e) {
+          console.error("Error checking settings for broadcast", e);
+        }
       }
       setIsDialogOpen(false);
     } catch (err) {

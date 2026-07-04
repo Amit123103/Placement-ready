@@ -19,6 +19,7 @@ interface Project {
   githubLink: string;
   liveLink?: string;
   difficulty: string;
+  createdAt?: string;
 }
 
 export default function ProjectsPage() {
@@ -148,7 +149,7 @@ export default function ProjectsPage() {
                       {project.description}
                     </p>
 
-                    <div className="mb-6">
+                    <div className="mb-4">
                       <div className="flex flex-wrap gap-2">
                         {project.techStack.map(tech => (
                           <span key={tech} className="px-2.5 py-1 bg-muted text-xs font-medium rounded-md border border-border/50">
@@ -158,7 +159,13 @@ export default function ProjectsPage() {
                       </div>
                     </div>
 
-                    <div className="flex gap-3 pt-4 border-t border-border/50">
+                    {project.createdAt && (
+                      <p className="text-[11px] text-muted-foreground/70 mb-4 text-center">
+                        Added on {new Date(project.createdAt).toLocaleDateString()} at {new Date(project.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </p>
+                    )}
+
+                    <div className="flex gap-3 pt-4 border-t border-border/50 mt-auto">
                       <Button variant="outline" className="flex-1 group" asChild>
                         <a href={project.githubLink} target="_blank" rel="noopener noreferrer">
                           <svg

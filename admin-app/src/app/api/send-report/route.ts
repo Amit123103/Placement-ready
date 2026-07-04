@@ -20,6 +20,9 @@ export async function POST(req: Request) {
     const percentage = ((totalScore / maxScore) * 100).toFixed(1);
     const minutes = Math.floor(timeSpent / 60);
     const seconds = timeSpent % 60;
+    const loginUrl = process.env.NEXT_PUBLIC_APP_URL 
+      ? `${process.env.NEXT_PUBLIC_APP_URL}/login` 
+      : 'https://placement-ready-ten.vercel.app/login';
 
     const htmlContent = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background-color: #f9f9f9; padding: 20px; border-radius: 10px; border: 1px solid #ddd;">
@@ -56,10 +59,12 @@ export async function POST(req: Request) {
               </tr>
             </table>
           </div>
-          
           <p style="color: #555; line-height: 1.5; margin-bottom: 0;">
             Great job! You can view detailed feedback and question breakdowns directly in your student dashboard.
           </p>
+          <div style="margin-top: 30px; text-align: center;">
+            <a href="${loginUrl}" target="_blank" style="display: inline-block; padding: 12px 24px; background-color: #2563eb; color: white; text-decoration: none; border-radius: 6px; font-weight: bold;">Login to your Dashboard</a>
+          </div>
         </div>
         
         <div style="text-align: center; margin-top: 20px; font-size: 12px; color: #9ca3af;">

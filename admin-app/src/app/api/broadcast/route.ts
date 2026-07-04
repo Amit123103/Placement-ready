@@ -43,6 +43,10 @@ export async function POST(req: Request) {
     }
 
     const imageHtml = imageUrl ? `<div style="margin: 20px 0; text-align: center;"><img src="${imageUrl}" alt="Attachment" style="max-width: 100%; border-radius: 8px;" /></div>` : '';
+    
+    const loginUrl = process.env.NEXT_PUBLIC_APP_URL 
+      ? `${process.env.NEXT_PUBLIC_APP_URL}/login` 
+      : 'https://placement-ready-ten.vercel.app/login';
 
     // Send emails (using BCC so users don't see each other's emails)
     const mailOptions = {
@@ -56,6 +60,9 @@ export async function POST(req: Request) {
           ${imageHtml}
           <div style="margin: 20px 0; line-height: 1.6;">
             ${message}
+          </div>
+          <div style="margin-top: 30px; text-align: center;">
+            <a href="${loginUrl}" target="_blank" style="display: inline-block; padding: 12px 24px; background-color: #2563eb; color: white; text-decoration: none; border-radius: 6px; font-weight: bold;">Login to your Dashboard</a>
           </div>
           <p style="margin-top: 30px; font-size: 12px; color: #64748b;">You got this email because you signed up on Placement Ready.</p>
         </div>

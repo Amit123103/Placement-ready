@@ -4,71 +4,63 @@ export async function POST(req: Request) {
   try {
     const { language, code, stdin } = await req.json();
 
-    const clientId = process.env.JDOODLE_CLIENT_ID;
-    const clientSecret = process.env.JDOODLE_CLIENT_SECRET;
-
-    // Language mapping for JDoodle
-    const jdoodleLangs: Record<string, { lang: string; version: string }> = {
-      javascript: { lang: "nodejs", version: "4" },
-      python: { lang: "python3", version: "4" },
-      java: { lang: "java", version: "4" },
-      c: { lang: "c", version: "5" },
-      cpp: { lang: "cpp", version: "5" },
-      csharp: { lang: "csharp", version: "4" },
-      r: { lang: "r", version: "4" },
-      go: { lang: "go", version: "4" },
-      ruby: { lang: "ruby", version: "4" },
-      rust: { lang: "rust", version: "4" }
+    // Map language IDs from the frontend to Piston API language names and versions
+    const pistonLangs: Record<string, { lang: string; version: string }> = {
+      javascript: { lang: "javascript", version: "18.15.0" },
+      python: { lang: "python", version: "3.10.0" },
+      java: { lang: "java", version: "15.0.2" },
+      c: { lang: "c", version: "10.2.0" },
+      cpp: { lang: "cpp", version: "10.2.0" },
+      csharp: { lang: "csharp", version: "6.12.0" },
+      r: { lang: "r", version: "4.1.1" },
+      go: { lang: "go", version: "1.16.2" },
+      ruby: { lang: "ruby", version: "3.0.1" },
+      rust: { lang: "rust", version: "1.68.2" }
     };
 
-    const targetLang = jdoodleLangs[language] || { lang: language, version: "0" };
+    const targetLang = pistonLangs[language];
 
-    // If API keys are configured, use real JDoodle execution
-    if (clientId && clientSecret) {
-      const response = await fetch("https://api.jdoodle.com/v1/execute", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          clientId,
-          clientSecret,
-          script: code,
-          language: targetLang.lang,
-          versionIndex: targetLang.version,
-          stdin: stdin || "",
-        }),
-      });
+    if (!targetLang) {
+      return NextResponse.json({ stdout: "", stderr: `Unsupported language: ${language}` });
+    }
 
-      const result = await response.json();
-      
-      if (result.error) {
-         return NextResponse.json({ stdout: "", stderr: result.error });
-      }
+    const response = await fetch("https://emkc.org/api/v2/piston/execute", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        language: targetLang.lang,
+        version: targetLang.version,
+        files: [
+          {
+            content: code
+          }
+        ],
+        stdin: stdin || "",
+        compile_timeout: 10000,
+        run_timeout: 3000,
+        compile_memory_limit: -1,
+        run_memory_limit: -1
+      }),
+    });
 
-      // JDoodle returns output and memory/cpu. Errors are often mixed in output but sometimes it fails explicitly.
-      return NextResponse.json({ 
-        stdout: result.output, 
-        stderr: "" 
+    const result = await response.json();
+
+    if (!response.ok) {
+      return NextResponse.json({ stdout: "", stderr: result.message || "Failed to execute code on Piston API" });
+    }
+
+    if (result.compile && result.compile.code !== 0) {
+      // Compilation error
+      return NextResponse.json({
+        stdout: "",
+        stderr: result.compile.output
       });
     }
 
-    // FALLBACK: MOCK EXECUTION (If keys are not set)
-    console.warn("JDOODLE_CLIENT_ID or JDOODLE_CLIENT_SECRET is missing. Using Mock Execution.");
-    
-    // Simulate some network delay
-    await new Promise(resolve => setTimeout(resolve, 800));
-
-    // Simple mock logic: just echo stdin for basic test cases to simulate output
-    // Or if there's an obvious syntax error keyword, simulate an error
-    if (code.includes("syntax error") || code.includes("throw new Error")) {
-      return NextResponse.json({ 
-        stdout: "", 
-        stderr: "Mock Execution Error: SyntaxError on line 3\n    at Object.<anonymous> (/app/script.js:3:1)" 
-      });
-    }
-
+    // Execution success or runtime error
     return NextResponse.json({ 
-      stdout: stdin ? stdin : "Mock Output: Code executed successfully. Please configure JDoodle API keys for real execution.", 
-      stderr: "" 
+      stdout: result.run.stdout, 
+      stderr: result.run.stderr 
     });
 
   } catch (error: any) {

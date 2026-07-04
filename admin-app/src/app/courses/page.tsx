@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { db, storage } from "@/lib/firebase";
-import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc } from "firebase/firestore";
+import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, getDoc } from "firebase/firestore";
 import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { Button } from "@/components/ui/button";
@@ -136,8 +136,35 @@ export default function CoursesAdmin() {
         await updateDoc(doc(db, "courses", editingItem.id), courseData);
         setCourses(courses.map(t => t.id === editingItem.id ? { ...courseData, id: editingItem.id } as Course : t));
       } else {
-        const docRef = await addDoc(collection(db, "courses"), courseData);
-        setCourses([...courses, { ...courseData, id: docRef.id } as Course]);
+        const newData = { ...courseData, createdAt: new Date().toISOString() };
+        const docRef = await addDoc(collection(db, "courses"), newData);
+        setCourses([...courses, { ...newData, id: docRef.id } as Course]);
+
+        try {
+          const settingsSnap = await getDoc(doc(db, "settings", "notifications"));
+          const settings = settingsSnap.exists() ? settingsSnap.data() : null;
+          
+          if (!settings || settings.courses !== false) {
+            const motivationText = "Continuous learning is the secret to staying ahead. Enroll in this new course to build your expertise and stand out!";
+            const shortDescription = courseData.description.length > 150 ? courseData.description.substring(0, 150) + "..." : courseData.description;
+
+            fetch('/api/broadcast', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                subject: 'New Course Added!',
+                message: `A new course "<strong>${courseData.title}</strong>" by ${courseData.instructor} has been added.<br/><br/>
+                <strong>Brief Introduction:</strong><br/>
+                ${shortDescription}<br/><br/>
+                <strong>Motivation:</strong><br/>
+                ${motivationText}<br/><br/>
+                Log in to start learning now!`
+              })
+            }).catch(console.error);
+          }
+        } catch (e) {
+          console.error("Error checking settings for broadcast", e);
+        }
       }
       setIsDialogOpen(false);
     } catch (err) {

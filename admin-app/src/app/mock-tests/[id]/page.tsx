@@ -21,6 +21,8 @@ export default function MockTestBuilderPage() {
   const [testData, setTestData] = useState<any>(null);
   const [questions, setQuestions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [importMode, setImportMode] = useState<"manual" | "bulk">("manual");
+  const [bulkJson, setBulkJson] = useState("");
 
   // New Question State
   const [type, setType] = useState<"mcq" | "msq" | "short_text" | "long_text" | "code">("mcq");
@@ -108,6 +110,29 @@ export default function MockTestBuilderPage() {
     }
   };
 
+  const handleBulkImport = async () => {
+    if (!bulkJson.trim()) return alert("Please enter JSON data.");
+    try {
+      const parsed = JSON.parse(bulkJson);
+      if (!Array.isArray(parsed)) throw new Error("JSON must be an array of questions.");
+      
+      const newQuestions = parsed.map(q => ({
+        ...q,
+        id: "q" + Date.now() + Math.random().toString(36).substr(2, 5)
+      }));
+
+      const updatedQuestions = [...questions, ...newQuestions];
+      setQuestions(updatedQuestions);
+      await updateDoc(doc(db, "mockTests", resolvedId), { questions: updatedQuestions });
+      
+      setBulkJson("");
+      alert(`Successfully imported ${newQuestions.length} questions!`);
+      setImportMode("manual");
+    } catch (e: any) {
+      alert("Invalid JSON format: " + e.message);
+    }
+  };
+
   if (loading) return <DashboardLayout><p>Loading test builder...</p></DashboardLayout>;
   if (!testData) return <DashboardLayout><p>Test not found.</p></DashboardLayout>;
 
@@ -135,10 +160,28 @@ export default function MockTestBuilderPage() {
         <div className="lg:col-span-1 space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Add Question</CardTitle>
+              <CardTitle>Add Questions</CardTitle>
+              <div className="flex bg-muted/50 p-1 rounded-lg w-full max-w-sm mt-4">
+                <Button 
+                  variant={importMode === 'manual' ? 'default' : 'ghost'} 
+                  className="flex-1 rounded-md h-8 text-xs" 
+                  onClick={() => setImportMode("manual")}
+                >
+                  Manual Entry
+                </Button>
+                <Button 
+                  variant={importMode === 'bulk' ? 'default' : 'ghost'} 
+                  className="flex-1 rounded-md h-8 text-xs" 
+                  onClick={() => setImportMode("bulk")}
+                >
+                  Bulk JSON Import
+                </Button>
+              </div>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="space-y-2">
+              {importMode === "manual" ? (
+                <>
+                  <div className="space-y-2">
                 <Label>Question Type</Label>
                 <Select value={type} onValueChange={(val: any) => setType(val)}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
@@ -245,6 +288,21 @@ export default function MockTestBuilderPage() {
               )}
 
               <Button onClick={handleAddQuestion} className="w-full mt-4">Add Question to Test</Button>
+                </>
+              ) : (
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Paste JSON Array of Questions</Label>
+                    <Textarea 
+                      placeholder={'[\n  {\n    "type": "mcq",\n    "questionText": "What is 2+2?",\n    "marks": 1,\n    "options": ["3", "4", "5", "6"],\n    "correctIndex": 1\n  }\n]'} 
+                      value={bulkJson} 
+                      onChange={e => setBulkJson(e.target.value)}
+                      className="font-mono text-sm h-64"
+                    />
+                  </div>
+                  <Button onClick={handleBulkImport} className="w-full mt-4">Import Questions</Button>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>

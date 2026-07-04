@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { db } from "@/lib/firebase";
-import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc } from "firebase/firestore";
+import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, getDoc } from "firebase/firestore";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -87,26 +87,36 @@ export default function InternshipsAdmin() {
         await updateDoc(doc(db, "internships", editingItem.id), formData);
         setInternships(internships.map(t => t.id === editingItem.id ? { ...formData, id: editingItem.id } : t));
       } else {
-        const docRef = await addDoc(collection(db, "internships"), formData);
-        setInternships([...internships, { ...formData, id: docRef.id }]);
-        
-        // Trigger broadcast email
-        const motivationText = "Starting your career early is the best investment you can make. Every experience counts towards your dream job!";
-        fetch('/api/broadcast', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            subject: 'New Internship Opportunity Added!',
-            message: `A new <strong>${formData.role}</strong> internship at <strong>${formData.company}</strong> has been added.<br/><br/>
-            <strong>Brief Introduction:</strong><br/>
-            Role: ${formData.role}<br/>
-            Location: ${formData.location}<br/>
-            Description: ${formData.description}<br/><br/>
-            <strong>Motivation:</strong><br/>
-            ${motivationText}<br/><br/>
-            Log in and check the Internships section to apply now!`
-          })
-        }).catch(console.error);
+        const newData = { ...formData, createdAt: new Date().toISOString() };
+        const docRef = await addDoc(collection(db, "internships"), newData);
+        setInternships([...internships, { ...newData, id: docRef.id }]);
+        // Check settings before broadcasting
+        try {
+          const settingsSnap = await getDoc(doc(db, "settings", "notifications"));
+          const settings = settingsSnap.exists() ? settingsSnap.data() : null;
+          
+          if (!settings || settings.internships !== false) {
+            // Trigger broadcast email
+            const motivationText = "Starting your career early is the best investment you can make. Every experience counts towards your dream job!";
+            fetch('/api/broadcast', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                subject: 'New Internship Opportunity Added!',
+                message: `A new <strong>${formData.role}</strong> internship at <strong>${formData.company}</strong> has been added.<br/><br/>
+                <strong>Brief Introduction:</strong><br/>
+                Role: ${formData.role}<br/>
+                Location: ${formData.location}<br/>
+                Description: ${formData.description}<br/><br/>
+                <strong>Motivation:</strong><br/>
+                ${motivationText}<br/><br/>
+                Log in and check the Internships section to apply now!`
+              })
+            }).catch(console.error);
+          }
+        } catch (e) {
+          console.error("Error checking settings for broadcast", e);
+        }
       }
       setIsDialogOpen(false);
     } catch (err) {

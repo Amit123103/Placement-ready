@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 // Firebase imports
 import { db } from "@/lib/firebase";
-import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc } from "firebase/firestore";
+import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, getDoc } from "firebase/firestore";
 import { DashboardLayout } from "@/components/dashboard-layout";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -128,8 +128,35 @@ export default function MockTestsPage() {
         setIsDialogOpen(false);
         router.push(`/mock-tests/${editingTest.id}`);
       } else {
-        const docRef = await addDoc(collection(db, "mockTests"), formData);
-        setTests([...tests, { ...formData, id: docRef.id }]);
+        const newData = { ...formData, createdAt: new Date().toISOString() };
+        const docRef = await addDoc(collection(db, "mockTests"), newData);
+        setTests([...tests, { ...newData, id: docRef.id }]);
+
+        try {
+          const settingsSnap = await getDoc(doc(db, "settings", "notifications"));
+          const settings = settingsSnap.exists() ? settingsSnap.data() : null;
+          
+          if (!settings || settings.mockTests !== false) {
+            const motivationText = "Mock tests are the closest you can get to the real interview experience. Take this test to evaluate your preparation and improve your weak areas!";
+            fetch('/api/broadcast', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                subject: 'New Mock Test Available!',
+                message: `A new mock test "<strong>${formData.title}</strong>" has been added for ${formData.category}.<br/><br/>
+                <strong>Details:</strong><br/>
+                Duration: ${formData.duration} minutes<br/>
+                Pass Score: ${formData.passScore} marks<br/><br/>
+                <strong>Motivation:</strong><br/>
+                ${motivationText}<br/><br/>
+                Log in now and start your test!`
+              })
+            }).catch(console.error);
+          }
+        } catch (e) {
+          console.error("Error checking settings for broadcast", e);
+        }
+
         setIsDialogOpen(false);
         router.push(`/mock-tests/${docRef.id}`);
       }
