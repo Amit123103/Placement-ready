@@ -108,7 +108,7 @@ export default function ArticlesPage() {
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
                 subject: 'New Article Published!',
-                message: `A new article "<strong>${newArticle.title}</strong>" has been published in the ${newArticle.category} category.<br/><br/>
+                message: `A new article "<strong>${newArticle.title}</strong>" has been published.<br/><br/>
                 <strong>Excerpt:</strong><br/>
                 ${shortDescription}<br/><br/>
                 <strong>Motivation:</strong><br/>

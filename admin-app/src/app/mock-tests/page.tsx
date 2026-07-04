@@ -143,10 +143,9 @@ export default function MockTestsPage() {
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
                 subject: 'New Mock Test Available!',
-                message: `A new mock test "<strong>${formData.title}</strong>" has been added for ${formData.category}.<br/><br/>
+                message: `A new mock test "<strong>${formData.title}</strong>" has been added.<br/><br/>
                 <strong>Details:</strong><br/>
-                Duration: ${formData.duration} minutes<br/>
-                Pass Score: ${formData.passScore} marks<br/><br/>
+                Duration: ${formData.duration} minutes<br/><br/>
                 <strong>Motivation:</strong><br/>
                 ${motivationText}<br/><br/>
                 Log in now and start your test!`

@@ -146,7 +146,7 @@ export default function CoursesAdmin() {
           
           if (!settings || settings.courses !== false) {
             const motivationText = "Continuous learning is the secret to staying ahead. Enroll in this new course to build your expertise and stand out!";
-            const shortDescription = courseData.description.length > 150 ? courseData.description.substring(0, 150) + "..." : courseData.description;
+            const shortDescription = (courseData as any).details ? ((courseData as any).details.length > 150 ? (courseData as any).details.substring(0, 150) + "..." : (courseData as any).details) : "";
 
             fetch('/api/broadcast', {
               method: 'POST',
