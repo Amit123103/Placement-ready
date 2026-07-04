@@ -8,6 +8,8 @@ import { Footer } from "@/components/footer";
 import { motion } from "framer-motion";
 import { Building2, MapPin, Users, Star, ExternalLink, AlertCircle, Search } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { useAuth } from "@/contexts/AuthContext";
+import { useRouter } from "next/navigation";
 
 interface Company {
   id: string;
@@ -26,6 +28,9 @@ export default function CompaniesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
+
+  const { user } = useAuth();
+  const router = useRouter();
 
   useEffect(() => {
     fetchCompanies();
@@ -227,6 +232,12 @@ export default function CompaniesPage() {
                       target="_blank"
                       rel="noopener noreferrer"
                       className="w-full inline-flex items-center justify-center rounded-md text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2 group transition-colors"
+                      onClick={(e) => {
+                        if (!user) {
+                          e.preventDefault();
+                          router.push("/login");
+                        }
+                      }}
                     >
                       View Careers
                       <ExternalLink className="w-4 h-4 ml-2 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />

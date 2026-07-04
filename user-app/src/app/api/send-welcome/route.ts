@@ -22,6 +22,10 @@ export async function POST(req: Request) {
       ? `${process.env.NEXT_PUBLIC_APP_URL}/dashboard` 
       : 'https://placement-ready-ten.vercel.app/dashboard';
 
+    const loginUrl = process.env.NEXT_PUBLIC_APP_URL 
+      ? `${process.env.NEXT_PUBLIC_APP_URL}/login` 
+      : 'https://placement-ready-ten.vercel.app/login';
+
     const mailOptions = {
       from: `"PlacementReady" <${process.env.EMAIL_USER}>`,
       to: email,
@@ -39,7 +43,10 @@ export async function POST(req: Request) {
             <li>Access premium study notes and courses</li>
           </ul>
           <p>Click below to jump straight into your dashboard and start preparing:</p>
-          <a href="${dashboardUrl}" style="display: inline-block; padding: 12px 24px; background-color: #2563eb; color: white; text-decoration: none; border-radius: 6px; margin-top: 10px; font-weight: bold;">Go to Dashboard</a>
+          <div style="margin-top: 20px;">
+            <a href="${dashboardUrl}" style="display: inline-block; padding: 12px 24px; background-color: #2563eb; color: white; text-decoration: none; border-radius: 6px; font-weight: bold; margin-right: 10px;">Go to Dashboard</a>
+            <a href="${loginUrl}" style="display: inline-block; padding: 12px 24px; background-color: #10b981; color: white; text-decoration: none; border-radius: 6px; font-weight: bold;">Login Now</a>
+          </div>
           <p style="margin-top: 30px; font-size: 12px; color: #64748b;">If you didn't create this account, you can safely ignore this email.</p>
         </div>
       `,

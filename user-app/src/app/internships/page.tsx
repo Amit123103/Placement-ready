@@ -6,17 +6,18 @@ import { db } from "@/lib/firebase";
 import { Navbar } from "@/components/navbar";
 import { Footer } from "@/components/footer";
 import { motion } from "framer-motion";
-import { Briefcase, Building, MapPin, DollarSign, Calendar, ExternalLink, AlertCircle } from "lucide-react";
+import { Briefcase, Building, MapPin, FileText, ExternalLink, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { useAuth } from "@/contexts/AuthContext";
+import { useRouter } from "next/navigation";
 
 interface Internship {
   id: string;
   role: string;
   company: string;
   location: string;
-  stipend: string;
-  duration: string;
+  description: string;
   applyLink: string;
   type: string; // e.g. "Remote", "On-site"
 }
@@ -25,6 +26,9 @@ export default function InternshipsPage() {
   const [internships, setInternships] = useState<Internship[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const { user } = useAuth();
+  const router = useRouter();
 
   useEffect(() => {
     fetchInternships();
@@ -50,8 +54,7 @@ export default function InternshipsPage() {
           role: "Software Engineering Intern",
           company: "Google",
           location: "Bangalore, India",
-          stipend: "₹1,00,000 / month",
-          duration: "6 Months",
+          description: "Join our team to build scalable software solutions.",
           applyLink: "#",
           type: "On-site"
         },
@@ -60,8 +63,7 @@ export default function InternshipsPage() {
           role: "Frontend Developer Intern",
           company: "Vercel",
           location: "Remote",
-          stipend: "$3,000 / month",
-          duration: "3 Months",
+          description: "Work on cutting edge frontend frameworks.",
           applyLink: "#",
           type: "Remote"
         },
@@ -70,8 +72,7 @@ export default function InternshipsPage() {
           role: "Data Science Intern",
           company: "Microsoft",
           location: "Hyderabad, India",
-          stipend: "₹80,000 / month",
-          duration: "2 Months",
+          description: "Apply machine learning models to large datasets.",
           applyLink: "#",
           type: "Hybrid"
         }
@@ -152,18 +153,24 @@ export default function InternshipsPage() {
                         <MapPin className="w-4 h-4 mr-3 text-foreground/50" />
                         {internship.location}
                       </div>
-                      <div className="flex items-center text-sm text-muted-foreground">
-                        <DollarSign className="w-4 h-4 mr-3 text-foreground/50" />
-                        {internship.stipend}
-                      </div>
-                      <div className="flex items-center text-sm text-muted-foreground">
-                        <Calendar className="w-4 h-4 mr-3 text-foreground/50" />
-                        {internship.duration}
+                      <div className="flex items-start text-sm text-muted-foreground">
+                        <FileText className="w-4 h-4 mr-3 mt-0.5 text-foreground/50 shrink-0" />
+                        <span className="line-clamp-3">{internship.description}</span>
                       </div>
                     </div>
 
                     <Button className="w-full group" asChild>
-                      <a href={internship.applyLink} target="_blank" rel="noopener noreferrer">
+                      <a 
+                        href={internship.applyLink} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        onClick={(e) => {
+                          if (!user) {
+                            e.preventDefault();
+                            router.push("/login");
+                          }
+                        }}
+                      >
                         Apply Now
                         <ExternalLink className="w-4 h-4 ml-2 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
                       </a>

@@ -87,15 +87,18 @@ export default function Home() {
               transition={{ duration: 0.5 }}
               className="space-y-4"
             >
-              <div className="inline-flex items-center rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-sm font-medium text-primary">
-                <span className="flex h-2 w-2 rounded-full bg-primary mr-2"></span>
-                The Ultimate Placement Preparation Platform
+              <div className="relative mx-auto w-[80%] max-w-2xl overflow-hidden rounded-full border border-sky-200 bg-gradient-to-r from-sky-100 via-white to-sky-100 py-2 px-4 shadow-sm mb-6">
+                <div className="animate-ticker text-sm font-semibold text-sky-900 flex gap-12">
+                  <span>✨ New Features: Company-specific Mock Tests!</span>
+                  <span>🚀 Latest Internships Added: Google, Microsoft, Amazon</span>
+                  <span>🌟 Start practicing today to land your dream job!</span>
+                </div>
               </div>
-              <h1 className="text-4xl font-extrabold tracking-tight sm:text-5xl md:text-6xl lg:text-7xl">
-                Crack Your <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary">Dream Placement</span>
+              <h1 className="text-3xl font-extrabold tracking-tight sm:text-4xl md:text-5xl lg:text-6xl">
+                Land Your <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-secondary">Dream Job</span>
               </h1>
-              <p className="mx-auto max-w-[700px] text-muted-foreground md:text-xl">
-                Master Data Structures, System Design, and Aptitude. Practice mock tests and get interview-ready with our comprehensive platform.
+              <p className="mx-auto max-w-[600px] text-muted-foreground md:text-lg">
+                Everything you need to clear your technical interviews—from coding practice to company-specific mock tests, all in one place.
               </p>
             </motion.div>
 

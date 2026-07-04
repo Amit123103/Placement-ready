@@ -17,8 +17,7 @@ interface Internship {
   role: string;
   company: string;
   location: string;
-  stipend: string;
-  duration: string;
+  description: string;
   applyLink: string;
   type: string;
 }
@@ -32,7 +31,7 @@ export default function InternshipsAdmin() {
   const [editingItem, setEditingItem] = useState<Internship | null>(null);
 
   const [formData, setFormData] = useState({ 
-    role: "", company: "", location: "", stipend: "", duration: "", applyLink: "", type: "Remote" 
+    role: "", company: "", location: "", description: "", applyLink: "", type: "Remote" 
   });
 
   useEffect(() => {
@@ -59,13 +58,13 @@ export default function InternshipsAdmin() {
 
   const handleOpenAdd = () => {
     setEditingItem(null);
-    setFormData({ role: "", company: "", location: "", stipend: "", duration: "", applyLink: "", type: "Remote" });
+    setFormData({ role: "", company: "", location: "", description: "", applyLink: "", type: "Remote" });
     setIsDialogOpen(true);
   };
 
   const handleOpenEdit = (t: Internship) => {
     setEditingItem(t);
-    setFormData({ role: t.role, company: t.company, location: t.location, stipend: t.stipend, duration: t.duration, applyLink: t.applyLink, type: t.type });
+    setFormData({ role: t.role, company: t.company, location: t.location, description: t.description || "", applyLink: t.applyLink, type: t.type });
     setIsDialogOpen(true);
   };
 
@@ -102,7 +101,7 @@ export default function InternshipsAdmin() {
             <strong>Brief Introduction:</strong><br/>
             Role: ${formData.role}<br/>
             Location: ${formData.location}<br/>
-            Stipend: ${formData.stipend}<br/><br/>
+            Description: ${formData.description}<br/><br/>
             <strong>Motivation:</strong><br/>
             ${motivationText}<br/><br/>
             Log in and check the Internships section to apply now!`
@@ -148,15 +147,16 @@ export default function InternshipsAdmin() {
               <Label htmlFor="location">Location</Label>
               <Input id="location" required value={formData.location} onChange={e => setFormData({ ...formData, location: e.target.value })} placeholder="Remote or Bangalore" />
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="stipend">Stipend</Label>
-                <Input id="stipend" required value={formData.stipend} onChange={e => setFormData({ ...formData, stipend: e.target.value })} placeholder="50k/month" />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="duration">Duration</Label>
-                <Input id="duration" required value={formData.duration} onChange={e => setFormData({ ...formData, duration: e.target.value })} placeholder="6 months" />
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="description">Description</Label>
+              <textarea 
+                id="description" 
+                required 
+                value={formData.description} 
+                onChange={e => setFormData({ ...formData, description: e.target.value })} 
+                placeholder="Brief description about the internship..."
+                className="flex min-h-[80px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
